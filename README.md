@@ -15,8 +15,9 @@ A simple milk bottle tracker.
 
 Personal project.
 
+# MILK BOTTLE
 
-ミルクボトルを管理するシンプルなアプリです。
+自身のミルクボトルを管理するシンプルなアプリです。
 
 ## 機能
 
