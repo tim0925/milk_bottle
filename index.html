@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <html lang="ja">
-<link rel="stylesheet" href="style.css">
-<script src="script.js"></script>
 
 <head>
     <meta charset="UTF-8">
@@ -37,6 +35,395 @@
     <h2>Logs</h2>
     <div id="logList"></div>
 
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding-top: 40px;
+        }
+
+        #flask {
+            width: 120px;
+            height: 240px;
+            border: 4px solid #333;
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        #milk {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: #fff8dc;
+
+            transition:
+                height 0.3s,
+                transform 0.8s;
+        }
+
+        .mark {
+            position: absolute;
+            width: 100%;
+            border-top: 2px dashed #888;
+        }
+
+        .mark1 {
+            bottom: 33%;
+        }
+
+        .mark2 {
+            bottom: 66%;
+        }
+
+        button {
+            font-size: 20px;
+            padding: 12px 24px;
+            margin: 10px;
+        }
+
+        #status {
+            font-size: 24px;
+        }
+
+        #message {
+            font-size: 32px;
+            font-weight: bold;
+            height: 50px;
+            margin: 10px 0;
+        }
+
+        .floaty {
+            animation: floaty 1.5s ease-in-out infinite;
+        }
+
+        @keyframes floaty {
+
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .pulse {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0% {
+                transform: scale(1);
+                color: hotpink;
+            }
+
+            50% {
+                transform: scale(1.15);
+                color: hotpink;
+            }
+
+            100% {
+                transform: scale(1);
+                color: hotpink;
+            }
+        }
+    </style>
+
+    <script>let level = Number(localStorage.getItem("milkLevel")) || 0;
+
+        function updateDisplay() {
+
+            const milk =
+                document.getElementById("milk");
+
+            const status =
+                document.getElementById("status");
+
+            const message =
+                document.getElementById("message");
+
+            milk.style.height =
+                (level / 3 * 100) + "%";
+
+            status.textContent =
+                level + " / 3";
+
+            message.classList.remove("floaty");
+            message.classList.remove("pulse");
+
+            if (level === 0) {
+
+                message.textContent = "Empty...";
+                message.style.color = "gray";
+
+
+            }
+            else if (level === 1) {
+
+                message.textContent = "Better";
+                message.style.color = "black";
+                message.classList.add("floaty");
+
+            }
+            else if (level === 2) {
+
+                message.textContent = "HOT🔥";
+                message.style.color = "darkorange";
+
+                message.classList.add("floaty");
+
+            }
+            else if (level === 3) {
+
+                message.textContent = "🍼FULL❤️";
+                message.style.color = "hotpink";
+
+                message.classList.add("pulse");
+
+            }
+
+
+
+
+            else {
+
+                message.textContent = "";
+            }
+        }
+
+        function addMilk() {
+            if (level < 3) {
+                level++;
+                save();
+            }
+        }
+
+        function drinkMilk() {
+
+            countAchievement();
+
+            addLog();
+
+            localStorage.setItem(
+                "lastGameTime",
+                Date.now()
+            );
+
+            level = 0;
+
+            save();
+        }
+
+        function save() {
+            localStorage.setItem("milkLevel", level);
+            updateDisplay();
+        }
+
+        applyMilkRecovery();
+
+        updateDisplay();
+        displayLogs();
+        updateStats();
+
+        function addLog() {
+
+            let logs =
+                JSON.parse(
+                    localStorage.getItem("gameLogs")
+                ) || [];
+
+            const now = new Date();
+
+            logs.unshift({
+                date: now.toLocaleString("ja-JP"),
+                milk: level
+            });
+
+            logs = logs.slice(0, 10);
+
+            localStorage.setItem(
+                "gameLogs",
+                JSON.stringify(logs)
+            );
+
+            displayLogs();
+        }
+
+        function displayLogs() {
+
+            const logList =
+                document.getElementById("logList");
+
+            let logs =
+                JSON.parse(
+                    localStorage.getItem("gameLogs")
+                ) || [];
+
+            logList.innerHTML = logs
+                .map(log => {
+
+                    let color = "gray";
+
+                    if (log.milk === 3) {
+                        color = "deeppink";
+                    }
+                    else if (log.milk === 2) {
+                        color = "darkorange";
+                    }
+
+                    return `
+                <div style="color:${color}">
+                    ${log.date}
+                    （${log.milk}/3）
+                </div>
+            `;
+                })
+                .join("");
+        }
+
+        function clearLogs() {
+
+            const result =
+                confirm("Are you sure?");
+
+            if (!result) return;
+
+            localStorage.removeItem("gameLogs");
+            localStorage.removeItem("countFull");
+            localStorage.removeItem("countHot");
+            localStorage.removeItem("countBetter");
+            localStorage.removeItem("countEmpty");
+
+            updateStats();
+            displayLogs();
+        }
+
+
+        function applyMilkRecovery() {
+
+            const lastGameTime =
+                Number(
+                    localStorage.getItem(
+                        "lastGameTime"
+                    )
+                );
+
+            if (!lastGameTime) return;
+
+            const now = Date.now();
+
+            const hours24 =
+                24 * 60 * 60 * 1000;
+
+            const recovered =
+                Math.floor(
+                    (now - lastGameTime)
+                    / hours24
+                );
+
+            if (recovered <= 0) return;
+
+            level =
+                Math.min(
+                    3,
+                    level + recovered
+                );
+
+            save();
+            localStorage.setItem(
+                "lastGameTime",
+                lastGameTime + recovered * hours24
+            );
+        }
+
+        function updateStats() {
+
+            const stats =
+                document.getElementById("stats");
+
+            const full =
+                Number(localStorage.getItem("countFull")) || 0;
+
+            const hot =
+                Number(localStorage.getItem("countHot")) || 0;
+
+            const better =
+                Number(localStorage.getItem("countBetter")) || 0;
+
+            const empty =
+                Number(localStorage.getItem("countEmpty")) || 0;
+
+            stats.innerHTML = `
+        <div style="color:hotpink">
+            FULL ❤️ : ${full}
+        </div>
+
+        <div style="color:darkorange">
+            HOT 🔥 : ${hot}
+        </div>
+
+        <div style="color:black">
+            Better : ${better}
+        </div>
+
+        <div style="color:gray">
+            Empty... : ${empty}
+        </div>
+    `;
+        }
+        function countAchievement() {
+
+            if (level === 3) {
+
+                const count =
+                    Number(localStorage.getItem("countFull")) || 0;
+
+                localStorage.setItem(
+                    "countFull",
+                    count + 1
+                );
+
+            } else if (level === 2) {
+
+                const count =
+                    Number(localStorage.getItem("countHot")) || 0;
+
+                localStorage.setItem(
+                    "countHot",
+                    count + 1
+                );
+
+            } else if (level === 1) {
+
+                const count =
+                    Number(localStorage.getItem("countBetter")) || 0;
+
+                localStorage.setItem(
+                    "countBetter",
+                    count + 1
+                );
+
+            } else {
+
+                const count =
+                    Number(localStorage.getItem("countEmpty")) || 0;
+
+                localStorage.setItem(
+                    "countEmpty",
+                    count + 1
+                );
+            }
+
+            updateStats();
+        }
+    </script>
 
 </body>
 
