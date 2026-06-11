@@ -1,44 +1,49 @@
 <!DOCTYPE html>
 <html lang="ja">
-<link rel="stylesheet" href="style.css">
-
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MILK BOTTLE🥛</title>
-
-
+    <link rel="stylesheet" href="style.css" />
 </head>
 
-
-
 <body>
+    <main class="app">
+        <h1>MILK BOTTLE</h1>
 
-    <h1>MILK BOTTLE</h1>
+        <div class="bottle-card">
+            <div id="flask" aria-label="milk bottle">
+                <div id="milk"></div>
+                <div class="mark mark1"></div>
+                <div class="mark mark2"></div>
+            </div>
 
-    <div id="flask">
-        <div id="milk"></div>
-        <div class="mark mark1"></div>
-        <div class="mark mark2"></div>
-    </div>
 
-    <div id="status"></div>
-    <div id="message"></div>
+            <div id="status">0 / 3</div>
+            <div id="message">Empty...</div>
 
-    <button onclick="addMilk()">+MILK</button>
-    <button onclick="drinkMilk()">💦</button>
-    <button onclick="clearLogs()">clear logs</button>
+            <div class="actions">
+                <button id="addBtn" type="button">+MILK</button>
+                <button id="drinkBtn" type="button">💦</button>
+                <button id="clearBtn" type="button">clear logs</button>
+            </div>
+        </div>
 
-    <h2>Count</h2>
-    <div id="stats"></div>
 
-    <h2>Logs</h2>
-    <div id="logList"></div>
+
+        <section class="panel">
+            <h2>Count</h2>
+            <div id="stats" class="stats"></div>
+        </section>
+
+        <section class="panel">
+            <h2>Logs</h2>
+            <div id="logList" class="log-list"></div>
+        </section>
+    </main>
 
     <script src="script.js"></script>
-
 </body>
 
 </html>
