@@ -250,9 +250,43 @@ function applyMilkRecovery() {
     );
 }
 
+function updateRecoveryTimer() {
+    const timerEl = document.getElementById("recoveryTimer");
+    if (!timerEl) return;
+
+    const lastGameTime = Number(localStorage.getItem(STORAGE_KEYS.lastGameTime));
+    if (!lastGameTime || level >= MAX_LEVEL) {
+        timerEl.textContent = "";
+        timerEl.classList.remove("active");
+        return;
+    }
+
+    const now = Date.now();
+    const elapsed = now - lastGameTime;
+    const nextRecovery = RECOVERY_INTERVAL - (elapsed % RECOVERY_INTERVAL);
+
+    const totalSec = Math.ceil(nextRecovery / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+
+    const hh = String(h).padStart(2, "0");
+    const mm = String(m).padStart(2, "0");
+    const ss = String(s).padStart(2, "0");
+
+    timerEl.textContent = `🕐 Next +MILK in ${hh}:${mm}:${ss}`;
+    timerEl.classList.add("active");
+}
+
 document.getElementById("addBtn").addEventListener("click", addMilk);
 document.getElementById("drinkBtn").addEventListener("click", drinkMilk);
 document.getElementById("clearBtn").addEventListener("click", clearLogs);
 
 applyMilkRecovery();
 updateAll();
+updateRecoveryTimer();
+setInterval(() => {
+    applyMilkRecovery();
+    updateAll();
+    updateRecoveryTimer();
+}, 1000);
