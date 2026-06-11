@@ -20,21 +20,21 @@ function updateDisplay() {
     message.classList.remove("floaty");
     message.classList.remove("pulse");
 
-    if (level === 0) {
+    if (level < 1) {
 
         message.textContent = "Empty...";
         message.style.color = "gray";
 
-
     }
-    else if (level === 1) {
+    else if (level < 2) {
 
         message.textContent = "Better";
         message.style.color = "black";
+
         message.classList.add("floaty");
 
     }
-    else if (level === 2) {
+    else if (level < 3) {
 
         message.textContent = "HOT🔥";
         message.style.color = "darkorange";
@@ -42,7 +42,7 @@ function updateDisplay() {
         message.classList.add("floaty");
 
     }
-    else if (level === 3) {
+    else {
 
         message.textContent = "🍼FULL❤️";
         message.style.color = "hotpink";
@@ -50,19 +50,11 @@ function updateDisplay() {
         message.classList.add("pulse");
 
     }
-
-
-
-
-    else {
-
-        message.textContent = "";
-    }
 }
 
 function addMilk() {
     if (level < 3) {
-        level++;
+        level += 0.5;
         save();
     }
 }
@@ -181,27 +173,25 @@ function applyMilkRecovery() {
 
     const now = Date.now();
 
-    const hours24 =
-        24 * 60 * 60 * 1000;
+    const hours12 =
+        12 * 60 * 60 * 1000;
 
     const recovered =
         Math.floor(
             (now - lastGameTime)
-            / hours24
+            / hours12
         );
-
-    if (recovered <= 0) return;
 
     level =
         Math.min(
             3,
-            level + recovered
+            level + recovered * 0.5
         );
 
     save();
     localStorage.setItem(
         "lastGameTime",
-        lastGameTime + recovered * hours24
+        lastGameTime + recovered * hours12
     );
 }
 
