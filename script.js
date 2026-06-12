@@ -11,7 +11,8 @@ const STORAGE_KEYS = {
     countHot: "countHot",
     countBetter: "countBetter",
     countEmpty: "countEmpty",
-    isOverflow: "isOverflow"
+    isOverflow: "isOverflow",
+    totalDrinks: "totalDrinks"
 };
 
 let level = Number(localStorage.getItem(STORAGE_KEYS.milkLevel)) || 0;
@@ -323,6 +324,20 @@ function updateOverflowDisplay() {
     }
 }
 
+// ---- 「記録を始めた日」と総💦回数 ----
+function updateTrackingInfo() {
+    const el = document.getElementById("trackingInfo");
+    if (!el) return;
+
+    const lastGameTime = Number(localStorage.getItem(STORAGE_KEYS.lastGameTime));
+    const total = getCount(STORAGE_KEYS.totalDrinks);
+    const startedText = lastGameTime
+        ? new Date(lastGameTime).toLocaleString("ja-JP")
+        : "—";
+
+    el.innerHTML = `Tracking started: ${startedText}<br>Total 💦: ${total}`;
+}
+
 // ---- 表示更新 ----
 function updateDisplay() {
     const status  = document.getElementById("status");
@@ -339,6 +354,7 @@ function updateDisplay() {
     if (state.effect) message.classList.add(state.effect);
 
     updateOverflowDisplay();
+    updateTrackingInfo();
 }
 
 function renderStats() {
@@ -412,6 +428,7 @@ function drinkMilk() {
         countAchievement(level);
         addLog(level);
         localStorage.setItem(STORAGE_KEYS.lastGameTime, String(Date.now()));
+        setCount(STORAGE_KEYS.totalDrinks, getCount(STORAGE_KEYS.totalDrinks) + 1);
         level = 0;
         setOverflow(false);
         saveLevel();
@@ -421,9 +438,10 @@ function drinkMilk() {
 
 function clearLogs() {
     if (!confirm("Are you sure?")) return;
-    [STORAGE_KEYS.gameLogs, STORAGE_KEYS.countFull, STORAGE_KEYS.countHot, STORAGE_KEYS.countBetter, STORAGE_KEYS.countEmpty]
+    [STORAGE_KEYS.gameLogs, STORAGE_KEYS.countFull, STORAGE_KEYS.countHot, STORAGE_KEYS.countBetter, STORAGE_KEYS.countEmpty, STORAGE_KEYS.totalDrinks, STORAGE_KEYS.lastGameTime]
         .forEach(k => localStorage.removeItem(k));
     updateAll();
+    updateRecoveryTimer();
 }
 
 function applyMilkRecovery() {
@@ -479,3 +497,12 @@ setInterval(() => {
     updateAll();
     updateRecoveryTimer();
 }, 1000);
+
+// バックグラウンドから復帰した際に表示を即時再計算する
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        applyMilkRecovery();
+        updateAll();
+        updateRecoveryTimer();
+    }
+});
