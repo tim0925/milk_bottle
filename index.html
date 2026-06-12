@@ -8,7 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=12" />
+    <link id="mainStyle" rel="stylesheet" href="style.css" />
+    <script>
+        document.getElementById('mainStyle').href = 'style.css?v=' + Date.now();
+    </script>
 </head>
 
 <body>
@@ -86,7 +89,13 @@
         <canvas id="burstCanvas"></canvas>
     </main>
 
-    <script src="script.js?v=5"></script>
+    <script>
+        (function () {
+            var s = document.createElement('script');
+            s.src = 'script.js?v=' + Date.now();
+            document.body.appendChild(s);
+        })();
+    </script>
 </body>
 
 </html>
