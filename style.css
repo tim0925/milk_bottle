@@ -200,8 +200,8 @@ button:active { background: #e8e8e8; }
 
 @media (max-width: 480px) {
     h1 { font-size: 28px; }
-    .bottle-wrapper { width: 200px; height: 248px; }
-    #bottleSvg { width: 108px; height: 216px; }
+    .bottle-wrapper { width: 180px; height: 222px; }
+    #bottleSvg { width: 108px; height: 216px; margin-top: 6px; }
     #message   { font-size: 28px; }
     button     { font-size: 17px; padding: 11px 14px; }
     .stats, .log-list { font-size: 14px; }
