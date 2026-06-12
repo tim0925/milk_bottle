@@ -10,12 +10,13 @@ const STORAGE_KEYS = {
     countFull: "countFull",
     countHot: "countHot",
     countBetter: "countBetter",
-    countEmpty: "countEmpty"
+    countEmpty: "countEmpty",
+    isOverflow: "isOverflow"
 };
 
 let level = Number(localStorage.getItem(STORAGE_KEYS.milkLevel)) || 0;
+let isOverflow = localStorage.getItem(STORAGE_KEYS.isOverflow) === "true";
 
-const SVG_HEIGHT = 280;
 const BOTTLE_TOP_Y = 8;
 const BOTTLE_BOT_Y = 272;
 
@@ -46,14 +47,13 @@ function setCount(key, value) {
     localStorage.setItem(key, String(value));
 }
 
-// 波アニメーション
+// ---- 波アニメーション ----
 let waveOffset = 0;
 let currentDisplayLevel = level;
 let targetDisplayLevel = level;
 
 function animateWave() {
     waveOffset += 1.2;
-
     const wave1El = document.getElementById("wave1");
     const wave2El = document.getElementById("wave2");
     const x1 = (waveOffset % 280) - 280;
@@ -66,19 +66,15 @@ function animateWave() {
     } else {
         currentDisplayLevel = targetDisplayLevel;
     }
-
     updateMilkPosition(currentDisplayLevel);
-
     requestAnimationFrame(animateWave);
 }
 
 function updateMilkPosition(lv) {
     const ratio = lv / MAX_LEVEL;
     const milkTopY = BOTTLE_BOT_Y - ratio * (BOTTLE_BOT_Y - BOTTLE_TOP_Y);
-
     const milkFill = document.getElementById("milkFill");
     const waveGroup = document.getElementById("waveGroup");
-
     if (milkFill) {
         milkFill.setAttribute("y", milkTopY);
         milkFill.setAttribute("height", BOTTLE_BOT_Y - milkTopY + 10);
@@ -88,19 +84,261 @@ function updateMilkPosition(lv) {
     }
 }
 
+// ---- 溜まったミルクの表面に付着し、垂れ落ちる液体表現 ----
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+const DRIPS = [
+    { x: 22,  y: 230, armW: 9,  capH: 5, tailW: 5, maxTail: 26, minLevel: 0.5 },
+    { x: 88,  y: 60,  armW: 13, capH: 7, tailW: 7, maxTail: 42, minLevel: 1.0 },
+    { x: 44,  y: 90,  armW: 12, capH: 6, tailW: 6, maxTail: 38, minLevel: 1.5 },
+    { x: 66,  y: 180, armW: 8,  capH: 4, tailW: 4, maxTail: 20, minLevel: 2.0 },
+    { x: 108, y: 150, armW: 10, capH: 5, tailW: 5, maxTail: 30, minLevel: 2.5 },
+    { x: 70,  y: 220, armW: 11, capH: 6, tailW: 6, maxTail: 34, minLevel: 3.0 },
+];
+
+const dripsGroup = document.getElementById("dripsGroup");
+let dripEls = [];
+if (dripsGroup) {
+    dripEls = DRIPS.map(() => {
+        const cap = document.createElementNS(SVG_NS, "ellipse");
+        cap.setAttribute("fill", "url(#dripGrad)");
+        const capHl = document.createElementNS(SVG_NS, "path");
+        capHl.setAttribute("stroke", "rgba(255,255,255,0.7)");
+        capHl.setAttribute("stroke-width", "1.5");
+        capHl.setAttribute("stroke-linecap", "round");
+        capHl.setAttribute("fill", "none");
+        const tail = document.createElementNS(SVG_NS, "path");
+        tail.setAttribute("fill", "url(#dripGrad)");
+        const tailHl = document.createElementNS(SVG_NS, "path");
+        tailHl.setAttribute("stroke", "rgba(255,255,255,0.65)");
+        tailHl.setAttribute("stroke-width", "1.5");
+        tailHl.setAttribute("stroke-linecap", "round");
+        tailHl.setAttribute("fill", "none");
+        dripsGroup.appendChild(cap);
+        dripsGroup.appendChild(capHl);
+        dripsGroup.appendChild(tail);
+        dripsGroup.appendChild(tailHl);
+        return { cap, capHl, tail, tailHl };
+    });
+}
+
+function dripPath(x, topY, length, width) {
+    const half = width / 2;
+    const bulbR = width * 0.62;
+    const neckBottom = Math.max(topY + half, topY + length - bulbR);
+    return `M ${x - half},${topY}
+        C ${x - half - 1},${topY + (neckBottom - topY) * 0.5} ${x - half + 1.5},${neckBottom - bulbR * 0.4} ${x - bulbR},${neckBottom}
+        A ${bulbR},${bulbR} 0 1 0 ${x + bulbR},${neckBottom}
+        C ${x + half - 1.5},${neckBottom - bulbR * 0.4} ${x + half + 1},${topY + (neckBottom - topY) * 0.5} ${x + half},${topY}
+        Z`;
+}
+
+function dripHighlight(x, topY, length, width) {
+    const bulbR = width * 0.62;
+    const bottomY = Math.max(topY + width, topY + length - bulbR * 0.6);
+    return `M ${x - width * 0.15},${topY + 3} L ${x - width * 0.15},${bottomY}`;
+}
+
+function updateDrips(lv) {
+    if (!dripEls.length) return;
+
+    DRIPS.forEach((d, i) => {
+        const { cap, capHl, tail, tailHl } = dripEls[i];
+        if (lv < d.minLevel) {
+            cap.setAttribute("opacity", "0");
+            capHl.setAttribute("opacity", "0");
+            tail.setAttribute("opacity", "0");
+            tailHl.setAttribute("opacity", "0");
+            return;
+        }
+
+        const y = d.y;
+
+        cap.setAttribute("cx", d.x);
+        cap.setAttribute("cy", y);
+        cap.setAttribute("rx", d.armW);
+        cap.setAttribute("ry", d.capH);
+        cap.setAttribute("opacity", "1");
+
+        capHl.setAttribute("d", `M ${d.x - d.armW * 0.6},${y - d.capH * 0.3} Q ${d.x},${y - d.capH * 1.4} ${d.x + d.armW * 0.6},${y - d.capH * 0.3}`);
+        capHl.setAttribute("opacity", "0.7");
+
+        tail.setAttribute("d", dripPath(d.x, y + d.capH * 0.4, d.maxTail, d.tailW));
+        tailHl.setAttribute("d", dripHighlight(d.x, y + d.capH * 0.4, d.maxTail, d.tailW));
+        tail.setAttribute("opacity", "1");
+        tailHl.setAttribute("opacity", "0.8");
+    });
+}
+
+// ---- 💦噴出アニメーション（Canvas物理・噴水風） ----
+const burstCanvas = document.getElementById("burstCanvas");
+const burstCtx = burstCanvas ? burstCanvas.getContext("2d") : null;
+const appEl = document.querySelector(".app");
+const bottleSvgEl = document.getElementById("bottleSvg");
+let burstDrops = [];
+let burstSplats = [];
+let burstEmitFrames = 0;
+let burstAnimating = false;
+let burstWidth = 0;
+let burstHeight = 0;
+let BURST_CX = 0;
+let BURST_TOP_Y = 0;
+let BURST_GROUND_Y = 0;
+
+// .app全体を覆うサイズに合わせ、ボトルの位置を.app基準で求める
+function updateBurstGeometry() {
+    if (!burstCtx || !appEl || !bottleSvgEl) return;
+    const appRect = appEl.getBoundingClientRect();
+    const bottleRect = bottleSvgEl.getBoundingClientRect();
+    const scale = window.devicePixelRatio || 1;
+
+    burstWidth = appRect.width;
+    burstHeight = appRect.height;
+    burstCanvas.style.width = `${burstWidth}px`;
+    burstCanvas.style.height = `${burstHeight}px`;
+    burstCanvas.width = burstWidth * scale;
+    burstCanvas.height = burstHeight * scale;
+    burstCtx.setTransform(scale, 0, 0, scale, 0, 0);
+
+    const bottleScale = bottleRect.width / 140; // bottleSvgのviewBox(140x280)に対する表示倍率
+    BURST_CX = (bottleRect.left - appRect.left) + bottleRect.width / 2;
+    BURST_TOP_Y = (bottleRect.top - appRect.top) + BOTTLE_TOP_Y * bottleScale;
+    BURST_GROUND_Y = (bottleRect.top - appRect.top) + BOTTLE_BOT_Y * bottleScale;
+}
+
+if (appEl && "ResizeObserver" in window) {
+    new ResizeObserver(updateBurstGeometry).observe(appEl);
+} else {
+    window.addEventListener("resize", updateBurstGeometry);
+}
+updateBurstGeometry();
+
+function drawDrop(x, y, r, opacity) {
+    const grad = burstCtx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.2, x, y, r);
+    grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+    grad.addColorStop(0.6, `rgba(255, 248, 220, ${opacity})`);
+    grad.addColorStop(1, `rgba(224, 208, 144, ${opacity})`);
+    burstCtx.beginPath();
+    burstCtx.arc(x, y, r, 0, Math.PI * 2);
+    burstCtx.fillStyle = grad;
+    burstCtx.fill();
+}
+
+function drawSplat(s) {
+    burstCtx.beginPath();
+    burstCtx.ellipse(s.x, s.y, s.r, s.r * 0.35, 0, 0, Math.PI * 2);
+    burstCtx.strokeStyle = `rgba(224, 208, 144, ${s.life * 0.6})`;
+    burstCtx.lineWidth = 1.5;
+    burstCtx.stroke();
+}
+
+function spawnBurstParticle() {
+    const angle = -55 - Math.random() * 70; // 左上〜右上に幅広く噴出
+    const speed = 4.5 + Math.random() * 6;
+    const rad = (angle * Math.PI) / 180;
+    burstDrops.push({
+        x: BURST_CX,
+        y: BURST_TOP_Y,
+        vx: Math.cos(rad) * speed,
+        vy: Math.sin(rad) * speed,
+        r: 3 + Math.random() * 5,
+        bounces: 0,
+        life: 1,
+    });
+}
+
+function triggerBurst() {
+    if (!burstCtx) return;
+
+    burstEmitFrames = 16; // 連続噴出フレーム数（噴水風）
+
+    if (!burstAnimating) {
+        burstAnimating = true;
+        requestAnimationFrame(burstStep);
+    }
+}
+
+function burstStep() {
+    burstCtx.clearRect(0, 0, burstWidth, burstHeight);
+
+    if (burstEmitFrames > 0) {
+        for (let i = 0; i < 3; i++) spawnBurstParticle();
+        burstEmitFrames--;
+    }
+
+    burstDrops.forEach(d => {
+        if (d.bounces < 2) {
+            d.vy += 0.3; // 重力
+            d.x += d.vx;
+            d.y += d.vy;
+
+            if (d.y + d.r >= BURST_GROUND_Y) {
+                d.y = BURST_GROUND_Y - d.r;
+                d.vy *= -0.35;
+                d.vx *= 0.6;
+                d.bounces++;
+                burstSplats.push({ x: d.x, y: BURST_GROUND_Y, r: d.r * 0.6, life: 1 });
+            }
+        } else {
+            d.life -= 0.06;
+        }
+        drawDrop(d.x, d.y, d.r, Math.max(0, d.life));
+    });
+
+    burstSplats.forEach(s => {
+        s.r += 1.3;
+        s.life -= 0.05;
+        if (s.life > 0) drawSplat(s);
+    });
+
+    burstDrops = burstDrops.filter(d => d.life > 0);
+    burstSplats = burstSplats.filter(s => s.life > 0);
+
+    if (burstDrops.length || burstSplats.length || burstEmitFrames > 0) {
+        requestAnimationFrame(burstStep);
+    } else {
+        burstAnimating = false;
+    }
+}
+
+// ---- OVERFLOW状態 ----
+function setOverflow(val) {
+    isOverflow = val;
+    localStorage.setItem(STORAGE_KEYS.isOverflow, String(val));
+}
+
+function updateOverflowDisplay() {
+    const msg = document.getElementById("overflowMessage");
+
+    if (isOverflow) {
+        if (msg) {
+            msg.textContent = "💢OVERFLOW💢";
+            msg.classList.add("active");
+        }
+    } else {
+        if (msg) {
+            msg.textContent = "";
+            msg.classList.remove("active");
+        }
+    }
+}
+
+// ---- 表示更新 ----
 function updateDisplay() {
-    const status = document.getElementById("status");
+    const status  = document.getElementById("status");
     const message = document.getElementById("message");
-    const state = getLevelState(level);
+    const state   = getLevelState(level);
 
     targetDisplayLevel = level;
-
+    updateDrips(level);
     status.textContent = `${level} / ${MAX_LEVEL}`;
     message.textContent = state.text;
 
     message.classList.remove("full", "hot", "better", "empty", "floaty", "pulse");
     message.classList.add(state.className);
     if (state.effect) message.classList.add(state.effect);
+
+    updateOverflowDisplay();
 }
 
 function renderStats() {
@@ -141,7 +379,11 @@ function updateAll() {
 }
 
 function addMilk() {
-    if (level >= MAX_LEVEL) return;
+    if (level >= MAX_LEVEL) {
+        setOverflow(true);
+        updateOverflowDisplay();
+        return;
+    }
     level = Math.min(MAX_LEVEL, level + STEP);
     saveLevel();
     updateDisplay();
@@ -162,12 +404,19 @@ function addLog(milkLevel) {
 }
 
 function drinkMilk() {
-    countAchievement(level);
-    addLog(level);
-    localStorage.setItem(STORAGE_KEYS.lastGameTime, String(Date.now()));
-    level = 0;
-    saveLevel();
-    updateAll();
+    // 噴出アニメーション
+    triggerBurst();
+
+    // 少し遅らせてからリセット（アニメを見せるため）
+    setTimeout(() => {
+        countAchievement(level);
+        addLog(level);
+        localStorage.setItem(STORAGE_KEYS.lastGameTime, String(Date.now()));
+        level = 0;
+        setOverflow(false);
+        saveLevel();
+        updateAll();
+    }, 300);
 }
 
 function clearLogs() {
@@ -180,18 +429,26 @@ function clearLogs() {
 function applyMilkRecovery() {
     const lastGameTime = Number(localStorage.getItem(STORAGE_KEYS.lastGameTime));
     if (!lastGameTime) return;
+
     const recovered = Math.floor((Date.now() - lastGameTime) / RECOVERY_INTERVAL);
     if (recovered <= 0) return;
+
+    const prevLevel = level;
     level = Math.min(MAX_LEVEL, level + recovered * STEP);
     saveLevel();
     localStorage.setItem(STORAGE_KEYS.lastGameTime, String(lastGameTime + recovered * RECOVERY_INTERVAL));
+
+    // 満タンのままさらに回復が発生したらOVERFLOW
+    if (prevLevel >= MAX_LEVEL && recovered > 0) {
+        setOverflow(true);
+    }
 }
 
 function updateRecoveryTimer() {
     const timerEl = document.getElementById("recoveryTimer");
     if (!timerEl) return;
     const lastGameTime = Number(localStorage.getItem(STORAGE_KEYS.lastGameTime));
-    if (!lastGameTime || level >= MAX_LEVEL) {
+    if (!lastGameTime || isOverflow) {
         timerEl.textContent = "";
         timerEl.classList.remove("active");
         return;
@@ -215,13 +472,10 @@ targetDisplayLevel = level;
 updateMilkPosition(level);
 updateAll();
 updateRecoveryTimer();
-
 animateWave();
 
 setInterval(() => {
     applyMilkRecovery();
-    updateDisplay();
-    renderStats();
-    renderLogs();
+    updateAll();
     updateRecoveryTimer();
 }, 1000);

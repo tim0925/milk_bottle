@@ -5,13 +5,14 @@ body {
     font-family: sans-serif;
     text-align: center;
     color: #222;
-    background: #fafafa;
+    background: #fff;
 }
 
 .app {
     max-width: 420px;
     margin: 0 auto;
     padding: 12px 8px 24px;
+    position: relative;
 }
 
 h1 {
@@ -21,21 +22,66 @@ h1 {
 }
 
 .bottle-card {
-    background: #fff;
-    border: 1px solid #ddd;
+    background: #fff8fa;
+    border: 1px solid #f3cdd8;
     border-radius: 14px;
     padding: 16px 16px 18px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    position: relative;
+}
+
+/* ボトル周辺のSVGをまとめるラッパー */
+.bottle-wrapper {
+    position: relative;
+    width: 260px;
+    height: 320px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
 }
 
 /* SVGボトル */
 #bottleSvg {
     display: block;
-    width: 120px;
-    height: 240px;
-    margin: 12px auto;
+    width: 140px;
+    height: 280px;
+    margin: 12px auto 0;
     overflow: visible;
     filter: drop-shadow(0 3px 8px rgba(0,0,0,0.12));
+    position: relative;
+    z-index: 2;
+}
+
+/* 噴出パーティクル用Canvas（カードからはみ出てMILK BOTTLEの文字より前面に表示） */
+#burstCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 50;
+}
+
+/* OVERFLOWメッセージ */
+.overflow-message {
+    min-height: 32px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #e05a00;
+    margin: 2px 0 0;
+}
+
+.overflow-message.active {
+    animation: overflowShake 0.5s ease-in-out;
+}
+
+@keyframes overflowShake {
+    0%   { transform: translateX(0); }
+    20%  { transform: translateX(-5px); }
+    40%  { transform: translateX(5px); }
+    60%  { transform: translateX(-4px); }
+    80%  { transform: translateX(4px); }
+    100% { transform: translateX(0); }
 }
 
 h2 {
