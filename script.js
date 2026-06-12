@@ -171,6 +171,43 @@ function updateDrips(lv) {
     });
 }
 
+// ---- ミルクの溜まり具合に応じて瓶の左右に出現する❤ ----
+const heartsLayer = document.getElementById("heartsLayer");
+
+function spawnHeart() {
+    if (!heartsLayer) return;
+    const heart = document.createElement("span");
+    heart.className = "heart";
+    heart.textContent = "❤️";
+
+    const fromLeft = Math.random() < 0.5;
+    const xPos = fromLeft ? Math.random() * 18 : 82 + Math.random() * 18;
+    const yPos = 10 + Math.random() * 70;
+
+    heart.style.left = `${xPos}%`;
+    heart.style.top = `${yPos}%`;
+    heart.style.fontSize = `${14 + Math.random() * 10}px`;
+    heart.style.animationDuration = `${1.4 + Math.random() * 0.8}s`;
+
+    heartsLayer.appendChild(heart);
+    heart.addEventListener("animationend", () => heart.remove());
+}
+
+function heartTick() {
+    const ratio = level / MAX_LEVEL;
+    if (ratio <= 0) return;
+
+    if (ratio >= 1) {
+        // FULL: あちこちからひっきりなしに❤が溢れ出す
+        const count = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < count; i++) spawnHeart();
+    } else if (Math.random() < ratio) {
+        spawnHeart();
+    }
+}
+
+setInterval(heartTick, 250);
+
 // ---- 💦噴出アニメーション（Canvas物理・噴水風） ----
 const burstCanvas = document.getElementById("burstCanvas");
 const burstCtx = burstCanvas ? burstCanvas.getContext("2d") : null;
