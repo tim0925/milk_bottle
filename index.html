@@ -13,12 +13,42 @@
         <h1>MILK BOTTLE</h1>
 
         <div class="bottle-card">
-            <div id="flask" aria-label="milk bottle">
-                <div id="milk"></div>
-                <div class="mark mark1"></div>
-                <div class="mark mark2"></div>
-            </div>
 
+            <svg id="bottleSvg" viewBox="0 0 140 280" xmlns="http://www.w3.org/2000/svg" aria-label="milk bottle">
+                <defs>
+                    <!-- 元の角丸四角のボトル形 -->
+                    <clipPath id="bottleClip">
+                        <rect x="4" y="4" width="132" height="272" rx="18" ry="24"/>
+                    </clipPath>
+                </defs>
+
+                <!-- ボトル内部の背景 -->
+                <g clip-path="url(#bottleClip)">
+                    <rect x="0" y="0" width="140" height="280" fill="#fff"/>
+
+                    <!-- ミルク液体 -->
+                    <g id="milkGroup">
+                        <rect id="milkFill" x="0" y="280" width="140" height="280" fill="#fff8dc"/>
+                        <g id="waveGroup">
+                            <path id="wave1" fill="rgba(255,248,220,0.85)"
+                                d="M-140,0 C-105,-14 -70,14 -35,0 C0,-14 35,14 70,0 C105,-14 140,14 175,0 C210,-14 245,14 280,0 L280,280 L-140,280 Z"/>
+                            <path id="wave2" fill="rgba(255,248,220,0.6)"
+                                d="M-140,5 C-100,-12 -65,16 -25,5 C15,-10 50,16 90,5 C130,-10 165,16 205,5 C245,-10 280,16 320,5 L320,280 L-140,280 Z"/>
+                        </g>
+                    </g>
+                </g>
+
+                <!-- ボトル枠線 -->
+                <rect x="4" y="4" width="132" height="272" rx="18" ry="24"
+                    fill="none" stroke="#333" stroke-width="4"/>
+
+                <!-- 目盛り線（1/3, 2/3） -->
+                <line x1="8"  y1="189" x2="132" y2="189" stroke="#888" stroke-width="2" stroke-dasharray="5,4"/>
+                <line x1="8"  y1="98"  x2="132" y2="98"  stroke="#888" stroke-width="2" stroke-dasharray="5,4"/>
+
+                <!-- 光沢 -->
+                <path d="M 24,24 C 22,70 22,140 24,200" stroke="rgba(255,255,255,0.6)" stroke-width="5" fill="none" stroke-linecap="round"/>
+            </svg>
 
             <div id="status">0 / 3</div>
             <div id="message">Empty...</div>
@@ -30,8 +60,6 @@
                 <button id="clearBtn" type="button">clear logs</button>
             </div>
         </div>
-
-
 
         <section class="panel">
             <h2>Count</h2>
