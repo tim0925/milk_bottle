@@ -32,6 +32,49 @@ h1 {
     text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.7);
 }
 
+/* ---- 日付ヘッダー ---- */
+.date-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: #aaa;
+    letter-spacing: 0.04em;
+    margin: 0 0 12px;
+}
+
+/* ---- タブ切り替え ---- */
+.tab-bar {
+    display: flex;
+    gap: 4px;
+    background: #f0eef0;
+    border-radius: 999px;
+    padding: 4px;
+    margin: 0 0 16px;
+}
+
+.tab-btn {
+    flex: 1;
+    appearance: none;
+    border: none;
+    background: transparent;
+    margin: 0;
+    padding: 10px 0;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #aaa;
+    cursor: pointer;
+}
+
+.tab-btn.active {
+    background: #fff;
+    color: #c25b80;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.tab-page[hidden] {
+    display: none;
+}
+
 .bottle-card {
     background: #fff8fa;
     border: 1px solid #f3cdd8;
@@ -188,6 +231,14 @@ button {
 button:hover { background: #f2f2f2; }
 button:active { background: #e8e8e8; }
 
+.btn-small {
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #999;
+    border-color: #ddd;
+}
+
 .stats {
     margin-top: 8px;
     text-align: left;
@@ -239,6 +290,110 @@ button:active { background: #e8e8e8; }
 }
 
 .empty-box { color: #888; padding: 6px 0; }
+
+/* ---- EMOTION（エナジー）パネル ---- */
+.emotion-card {
+    margin-top: 16px;
+}
+
+.emotion-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #c25b80;
+    text-align: left;
+    margin: 0 0 8px;
+}
+
+.energy-icon-wrap {
+    position: relative;
+    height: 260px;
+    margin: 4px 0 12px;
+    overflow: visible;
+}
+
+.energy-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: calc(var(--icon-size, 40px) / -2);
+    margin-left: calc(var(--icon-size, 40px) / -2);
+    width: var(--icon-size, 40px);
+    height: var(--icon-size, 40px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffe1ec, #fff8fa);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    transition: width 0.3s ease, height 0.3s ease, margin 0.3s ease;
+}
+
+.energy-icon.pulsing {
+    animation: heartbeat var(--pulse-duration, 2s) ease-in-out infinite;
+}
+
+.energy-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.energy-level-status {
+    margin: 4px 0 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #c25b80;
+    text-align: center;
+}
+
+@keyframes heartbeat {
+    0%   { transform: scale(1); }
+    25%  { transform: scale(1.28); }
+    45%  { transform: scale(0.94); }
+    65%  { transform: scale(1.14); }
+    100% { transform: scale(1); }
+}
+
+.energy-btn {
+    background: #ffe1ec;
+    border-color: #f3b6cc;
+}
+
+.energy-btn:hover  { background: #ffd2e3; }
+.energy-btn:active { background: #ffc2d8; }
+
+.energy-graph-wrap {
+    margin-top: 14px;
+}
+
+#energyGraph {
+    width: 100%;
+    height: 110px;
+    display: block;
+}
+
+.energy-image-manager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.file-label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.energy-image-count {
+    width: 100%;
+    font-size: 12px;
+    color: #aaa;
+}
 
 @media (max-width: 480px) {
     h1 { font-size: 24px; padding: 14px 18px; }

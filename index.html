@@ -18,6 +18,15 @@
     <main class="app">
         <h1>MILK BOTTLE</h1>
 
+        <div id="dateHeader" class="date-header"></div>
+
+        <div class="tab-bar">
+            <button id="tabBottleBtn" class="tab-btn active" type="button">MILK</button>
+            <button id="tabEmotionBtn" class="tab-btn" type="button">EMOTION</button>
+        </div>
+
+        <div id="pageBottle" class="tab-page">
+
         <div class="bottle-card">
 
             <!-- ボトルラッパー -->
@@ -87,8 +96,40 @@
 
         <!-- 噴出パーティクル用Canvas（カード・タイトルをまたいで最前面に表示） -->
         <canvas id="burstCanvas"></canvas>
+
+        </div>
+
+        <div id="pageEmotion" class="tab-page" hidden>
+
+        <div class="bottle-card emotion-card">
+            <div class="emotion-title">EMOTION</div>
+            <div class="energy-icon-wrap">
+                <div id="energyHeartsLayer" class="hearts-layer"></div>
+                <div id="energyIcon" class="energy-icon">
+                    <img id="energyIconImg" class="energy-icon-img" src="" alt="" />
+                </div>
+            </div>
+            <div id="energyLevelStatus" class="energy-level-status">Lv0</div>
+            <div class="actions">
+                <button id="energyBtn" class="energy-btn" type="button">⚡</button>
+                <button id="energyMinusBtn" class="btn-small" type="button">-</button>
+            </div>
+            <div class="energy-graph-wrap">
+                <svg id="energyGraph" viewBox="0 0 320 120" preserveAspectRatio="none" aria-label="energy history"></svg>
+            </div>
+
+            <div class="energy-image-manager">
+                <label class="btn-small file-label" for="energyImageInput">画像を追加</label>
+                <input id="energyImageInput" type="file" accept="image/*" multiple hidden />
+                <button id="energyImageClearBtn" class="btn-small" type="button">登録画像を削除</button>
+                <div id="energyImageCount" class="energy-image-count"></div>
+            </div>
+        </div>
+
+        </div>
     </main>
 
+    <script src="icon/icons.js?v=1"></script>
     <script>
         (function () {
             var s = document.createElement('script');

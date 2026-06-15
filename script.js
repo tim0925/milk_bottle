@@ -1,4 +1,5 @@
 const MAX_LEVEL = 3;
+const HARD_MAX_LEVEL = 10;
 const STEP = 0.5;
 const RECOVERY_INTERVAL = 12 * 60 * 60 * 1000;
 const LOG_LIMIT = 10;
@@ -12,11 +13,22 @@ const STORAGE_KEYS = {
     countBetter: "countBetter",
     countEmpty: "countEmpty",
     isOverflow: "isOverflow",
-    totalDrinks: "totalDrinks"
+    totalDrinks: "totalDrinks",
+    energyHistory: "energyHistory",
+    energyPulse: "energyPulse"
 };
+
+const ENERGY_HISTORY_LIMIT = 14;
+const PULSE_MAX_DURATION = 2.2; // 秒（鼓動が遅い状態・スタート時）
+const PULSE_MIN_DURATION = 0.4; // 秒（鼓動が速い状態）
+const PULSE_STEP = 0.03; // +1エナジーごとに鼓動が早くなる量
+const ICON_MIN_SIZE = 40; // px（スタート時のサイズ）
+const ICON_MAX_SIZE = 260; // px（最大サイズ・カードからはみ出るくらい大きく）
+const ICON_SIZE_STEP = 12; // +1エナジーごとに大きくなるサイズ
 
 let level = Number(localStorage.getItem(STORAGE_KEYS.milkLevel)) || 0;
 let isOverflow = localStorage.getItem(STORAGE_KEYS.isOverflow) === "true";
+let activeTab = "bottle";
 
 const BOTTLE_TOP_Y = 8;
 const BOTTLE_BOT_Y = 272;
@@ -88,14 +100,42 @@ function updateMilkPosition(lv) {
 // ---- 溜まったミルクの表面に付着し、垂れ落ちる液体表現 ----
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-const DRIPS = [
-    { x: 22,  y: 230, armW: 9,  capH: 5, tailW: 5, maxTail: 26, minLevel: 0.5 },
-    { x: 88,  y: 60,  armW: 13, capH: 7, tailW: 7, maxTail: 42, minLevel: 1.0 },
-    { x: 44,  y: 90,  armW: 12, capH: 6, tailW: 6, maxTail: 38, minLevel: 1.5 },
-    { x: 66,  y: 180, armW: 8,  capH: 4, tailW: 4, maxTail: 20, minLevel: 2.0 },
-    { x: 108, y: 150, armW: 10, capH: 5, tailW: 5, maxTail: 30, minLevel: 2.5 },
-    { x: 70,  y: 220, armW: 11, capH: 6, tailW: 6, maxTail: 34, minLevel: 3.0 },
+// ベースとなる出現位置と出現レベル。実際の見た目はbuildDrip()でランダムに生成する。
+const DRIP_BASE = [
+    { x: 22,  y: 230, minLevel: 0.4 },
+    { x: 50,  y: 95,  minLevel: 0.7 },
+    { x: 86,  y: 55,  minLevel: 1.0 },
+    { x: 112, y: 145, minLevel: 1.3 },
+    { x: 36,  y: 130, minLevel: 1.6 },
+    { x: 68,  y: 185, minLevel: 1.9 },
+    { x: 96,  y: 205, minLevel: 2.2 },
+    { x: 58,  y: 60,  minLevel: 2.6 },
+    { x: 116, y: 95,  minLevel: 3.0 },
 ];
+
+// 毎回ランダムに形・揺れ・しずくの付き方を生成し、粘性のある液だれっぽい表現にする
+function buildDrip(base) {
+    const tailW = 4 + Math.random() * 6;
+    return {
+        x: base.x + (Math.random() * 8 - 4),
+        y: base.y + (Math.random() * 12 - 6),
+        armW: tailW * (1.4 + Math.random() * 0.5),
+        capH: tailW * (0.55 + Math.random() * 0.2),
+        tailW,
+        maxTail: 14 + Math.random() * 30,
+        bend: (Math.random() - 0.5) * tailW * 2.4,
+        bulgeShiftX: (Math.random() - 0.5) * tailW * 0.8,
+        bulbScaleX: 0.55 + Math.random() * 0.25,
+        bulbScaleY: 0.85 + Math.random() * 0.3,
+        hasSatellite: Math.random() < 0.55,
+        satelliteOffsetX: (Math.random() - 0.5) * 14,
+        satelliteOffsetY: 8 + Math.random() * 14,
+        satelliteR: 2 + Math.random() * 2.5,
+        minLevel: base.minLevel,
+    };
+}
+
+const DRIPS = DRIP_BASE.map(buildDrip);
 
 const dripsGroup = document.getElementById("dripsGroup");
 let dripEls = [];
@@ -115,45 +155,59 @@ if (dripsGroup) {
         tailHl.setAttribute("stroke-width", "1.5");
         tailHl.setAttribute("stroke-linecap", "round");
         tailHl.setAttribute("fill", "none");
+        const satellite = document.createElementNS(SVG_NS, "ellipse");
+        satellite.setAttribute("fill", "url(#dripGrad)");
+        const satelliteHl = document.createElementNS(SVG_NS, "circle");
+        satelliteHl.setAttribute("fill", "rgba(255,255,255,0.8)");
         dripsGroup.appendChild(cap);
         dripsGroup.appendChild(capHl);
         dripsGroup.appendChild(tail);
         dripsGroup.appendChild(tailHl);
-        return { cap, capHl, tail, tailHl };
+        dripsGroup.appendChild(satellite);
+        dripsGroup.appendChild(satelliteHl);
+        return { cap, capHl, tail, tailHl, satellite, satelliteHl };
     });
 }
 
-function dripPath(x, topY, length, width) {
-    const half = width / 2;
-    const bulbR = width * 0.62;
-    const neckBottom = Math.max(topY + half, topY + length - bulbR);
-    return `M ${x - half},${topY}
-        C ${x - half - 1},${topY + (neckBottom - topY) * 0.5} ${x - half + 1.5},${neckBottom - bulbR * 0.4} ${x - bulbR},${neckBottom}
-        A ${bulbR},${bulbR} 0 1 0 ${x + bulbR},${neckBottom}
-        C ${x + half - 1.5},${neckBottom - bulbR * 0.4} ${x + half + 1},${topY + (neckBottom - topY) * 0.5} ${x + half},${topY}
+// 揺れ(bend)と非対称なしずく先端(bulge)を持つ、粘性液っぽい輪郭
+function dripPath(d, topY) {
+    const half = d.tailW / 2;
+    const bulbRx = d.tailW * d.bulbScaleX;
+    const bulbRy = d.tailW * d.bulbScaleY;
+    const neckBottom = Math.max(topY + half, topY + d.maxTail - bulbRy);
+    const midY = topY + (neckBottom - topY) * 0.5;
+    const bend = d.bend;
+    const bx = d.x + d.bulgeShiftX;
+
+    return `M ${d.x - half},${topY}
+        C ${d.x - half + bend},${midY} ${bx - bulbRx + 1},${neckBottom - bulbRy * 0.5} ${bx - bulbRx},${neckBottom}
+        A ${bulbRx},${bulbRy} 0 1 0 ${bx + bulbRx},${neckBottom}
+        C ${bx + bulbRx - 1},${neckBottom - bulbRy * 0.5} ${d.x + half + bend},${midY} ${d.x + half},${topY}
         Z`;
 }
 
-function dripHighlight(x, topY, length, width) {
-    const bulbR = width * 0.62;
-    const bottomY = Math.max(topY + width, topY + length - bulbR * 0.6);
-    return `M ${x - width * 0.15},${topY + 3} L ${x - width * 0.15},${bottomY}`;
+// ネックの揺れに沿って弧を描くハイライト（つや感）
+function dripHighlight(d, topY) {
+    const half = d.tailW / 2;
+    const bulbRy = d.tailW * d.bulbScaleY;
+    const neckBottom = Math.max(topY + half, topY + d.maxTail - bulbRy);
+    const midY = topY + (neckBottom - topY) * 0.5;
+    const hx = d.x - half * 0.3;
+    return `M ${hx},${topY + 3} Q ${hx + d.bend * 0.6},${midY} ${hx + d.bend * 0.3},${neckBottom - bulbRy * 0.6}`;
 }
 
 function updateDrips(lv) {
     if (!dripEls.length) return;
 
     DRIPS.forEach((d, i) => {
-        const { cap, capHl, tail, tailHl } = dripEls[i];
+        const { cap, capHl, tail, tailHl, satellite, satelliteHl } = dripEls[i];
         if (lv < d.minLevel) {
-            cap.setAttribute("opacity", "0");
-            capHl.setAttribute("opacity", "0");
-            tail.setAttribute("opacity", "0");
-            tailHl.setAttribute("opacity", "0");
+            [cap, capHl, tail, tailHl, satellite, satelliteHl].forEach(el => el.setAttribute("opacity", "0"));
             return;
         }
 
         const y = d.y;
+        const topY = y + d.capH * 0.4;
 
         cap.setAttribute("cx", d.x);
         cap.setAttribute("cy", y);
@@ -161,21 +215,42 @@ function updateDrips(lv) {
         cap.setAttribute("ry", d.capH);
         cap.setAttribute("opacity", "1");
 
-        capHl.setAttribute("d", `M ${d.x - d.armW * 0.6},${y - d.capH * 0.3} Q ${d.x},${y - d.capH * 1.4} ${d.x + d.armW * 0.6},${y - d.capH * 0.3}`);
+        capHl.setAttribute("d", `M ${d.x - d.armW * 0.6},${y - d.capH * 0.3} Q ${d.x + d.bend * 0.3},${y - d.capH * 1.4} ${d.x + d.armW * 0.6},${y - d.capH * 0.3}`);
         capHl.setAttribute("opacity", "0.7");
 
-        tail.setAttribute("d", dripPath(d.x, y + d.capH * 0.4, d.maxTail, d.tailW));
-        tailHl.setAttribute("d", dripHighlight(d.x, y + d.capH * 0.4, d.maxTail, d.tailW));
+        tail.setAttribute("d", dripPath(d, topY));
+        tailHl.setAttribute("d", dripHighlight(d, topY));
         tail.setAttribute("opacity", "1");
         tailHl.setAttribute("opacity", "0.8");
+
+        // 本体から少し離れた位置に飛び散ったしずくを表示
+        if (d.hasSatellite && lv >= d.minLevel + 0.4) {
+            const bulbRy = d.tailW * d.bulbScaleY;
+            const neckBottom = Math.max(topY + d.tailW / 2, topY + d.maxTail - bulbRy);
+            const sx = d.x + d.bulgeShiftX + d.satelliteOffsetX;
+            const sy = neckBottom + d.satelliteOffsetY;
+            satellite.setAttribute("cx", sx);
+            satellite.setAttribute("cy", sy);
+            satellite.setAttribute("rx", d.satelliteR);
+            satellite.setAttribute("ry", d.satelliteR * 1.2);
+            satellite.setAttribute("opacity", "0.9");
+            satelliteHl.setAttribute("cx", sx - d.satelliteR * 0.3);
+            satelliteHl.setAttribute("cy", sy - d.satelliteR * 0.3);
+            satelliteHl.setAttribute("r", d.satelliteR * 0.3);
+            satelliteHl.setAttribute("opacity", "0.8");
+        } else {
+            satellite.setAttribute("opacity", "0");
+            satelliteHl.setAttribute("opacity", "0");
+        }
     });
 }
 
 // ---- ミルクの溜まり具合に応じて瓶の左右に出現する❤ ----
 const heartsLayer = document.getElementById("heartsLayer");
+const energyHeartsLayer = document.getElementById("energyHeartsLayer");
 
-function spawnHeart() {
-    if (!heartsLayer) return;
+function spawnHeartIn(layer) {
+    if (!layer) return;
     const heart = document.createElement("span");
     heart.className = "heart";
     heart.textContent = "❤️";
@@ -189,8 +264,16 @@ function spawnHeart() {
     heart.style.fontSize = `${14 + Math.random() * 10}px`;
     heart.style.animationDuration = `${1.4 + Math.random() * 0.8}s`;
 
-    heartsLayer.appendChild(heart);
+    layer.appendChild(heart);
     heart.addEventListener("animationend", () => heart.remove());
+}
+
+function spawnHeart() {
+    spawnHeartIn(heartsLayer);
+}
+
+function spawnEnergyHeart() {
+    spawnHeartIn(energyHeartsLayer);
 }
 
 function heartTick() {
@@ -206,7 +289,24 @@ function heartTick() {
     }
 }
 
-setInterval(heartTick, 250);
+// ---- エナジーが溜まっているほど浮遊する❤ ----
+function energyHeartTick() {
+    const maxCount = Math.ceil((ICON_MAX_SIZE - ICON_MIN_SIZE) / ICON_SIZE_STEP);
+    const ratio = Math.min(1, getPulseCount() / maxCount);
+    if (ratio <= 0) return;
+
+    if (ratio >= 1) {
+        const count = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < count; i++) spawnEnergyHeart();
+    } else if (Math.random() < ratio) {
+        spawnEnergyHeart();
+    }
+}
+
+setInterval(() => {
+    if (activeTab === "bottle") heartTick();
+    if (activeTab === "emotion") energyHeartTick();
+}, 250);
 
 // ---- 💦噴出アニメーション（Canvas物理・噴水風） ----
 const burstCanvas = document.getElementById("burstCanvas");
@@ -366,13 +466,18 @@ function updateTrackingInfo() {
     const el = document.getElementById("trackingInfo");
     if (!el) return;
 
-    const lastGameTime = Number(localStorage.getItem(STORAGE_KEYS.lastGameTime));
+    const logs = getLogs();
     const total = getCount(STORAGE_KEYS.totalDrinks);
-    const startedText = lastGameTime
-        ? new Date(lastGameTime).toLocaleString("ja-JP")
+    const startedText = logs.length
+        ? logs[logs.length - 1].date
         : "—";
 
     el.innerHTML = `Tracking started: ${startedText}<br>Total 💦: ${total}`;
+}
+
+// ---- レベル表示用のテキスト（HARD_MAX_LEVEL以上は「10+」と表記） ----
+function formatLevelText(value) {
+    return value >= HARD_MAX_LEVEL ? `${HARD_MAX_LEVEL}+` : `${value}`;
 }
 
 // ---- 表示更新 ----
@@ -383,7 +488,7 @@ function updateDisplay() {
 
     targetDisplayLevel = level;
     updateDrips(level);
-    status.textContent = `${level} / ${MAX_LEVEL}`;
+    status.textContent = `${formatLevelText(level)} / ${MAX_LEVEL}`;
     message.textContent = state.text;
 
     message.classList.remove("full", "hot", "better", "empty", "floaty", "pulse");
@@ -420,7 +525,7 @@ function renderLogs() {
     logList.innerHTML = logs.map(log => `
         <div class="log-row ${log.className}">
             <span class="log-date">${log.date}</span>
-            <span class="log-main">${log.label} (${log.milk}/${MAX_LEVEL})</span>
+            <span class="log-main">${log.label} (${formatLevelText(log.milk)}/${MAX_LEVEL})</span>
         </div>
     `).join("");
 }
@@ -432,12 +537,13 @@ function updateAll() {
 }
 
 function addMilk() {
-    if (level >= MAX_LEVEL) {
+    if (level >= HARD_MAX_LEVEL) {
         setOverflow(true);
         updateOverflowDisplay();
         return;
     }
-    level = Math.min(MAX_LEVEL, level + STEP);
+    level = Math.min(HARD_MAX_LEVEL, level + STEP);
+    setOverflow(level > MAX_LEVEL);
     saveLevel();
     updateDisplay();
 }
@@ -456,6 +562,287 @@ function addLog(milkLevel) {
     saveLogs(logs.slice(0, LOG_LIMIT));
 }
 
+// ---- 日付ヘッダー ----
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function renderDateHeader() {
+    const el = document.getElementById("dateHeader");
+    if (!el) return;
+    const d = new Date();
+    el.textContent = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}(${WEEKDAY_LABELS[d.getDay()]})`;
+}
+
+// ---- タブ切り替え ----
+function setupTabs() {
+    const tabBottleBtn = document.getElementById("tabBottleBtn");
+    const tabEmotionBtn = document.getElementById("tabEmotionBtn");
+    const pageBottle = document.getElementById("pageBottle");
+    const pageEmotion = document.getElementById("pageEmotion");
+    if (!tabBottleBtn || !tabEmotionBtn || !pageBottle || !pageEmotion) return;
+
+    function showTab(tab) {
+        const isBottle = tab === "bottle";
+        activeTab = tab;
+        tabBottleBtn.classList.toggle("active", isBottle);
+        tabEmotionBtn.classList.toggle("active", !isBottle);
+        pageBottle.hidden = !isBottle;
+        pageEmotion.hidden = isBottle;
+        if (isBottle) updateBurstGeometry();
+        if (!isBottle) {
+            renderEnergyGraph();
+            setRandomEnergyIcon();
+        }
+    }
+
+    tabBottleBtn.addEventListener("click", () => showTab("bottle"));
+    tabEmotionBtn.addEventListener("click", () => showTab("emotion"));
+}
+
+// ---- EMOTION（エナジー）----
+function getTodayKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+function getEnergyHistory() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.energyHistory)) || [];
+}
+
+function saveEnergyHistory(history) {
+    localStorage.setItem(STORAGE_KEYS.energyHistory, JSON.stringify(history));
+}
+
+function ensureTodayEnergyEntry() {
+    const history = getEnergyHistory();
+    const todayKey = getTodayKey();
+    let today = history.find(e => e.date === todayKey);
+    if (!today) {
+        today = { date: todayKey, energy: 0, drink: false };
+        history.push(today);
+        if (history.length > ENERGY_HISTORY_LIMIT) {
+            history.splice(0, history.length - ENERGY_HISTORY_LIMIT);
+        }
+        saveEnergyHistory(history);
+    }
+    return { history, today };
+}
+
+const ENERGY_ICON_DIR = "icon/";
+const ENERGY_ICON_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+
+// icon/icons.js に列挙したファイル名一覧（file://で開いた場合のフォールバック）
+function getEnergyIconListFromManifest() {
+    if (typeof ENERGY_ICON_LIST !== "undefined" && ENERGY_ICON_LIST.length) {
+        return ENERGY_ICON_LIST.map(f => ENERGY_ICON_DIR + encodeURIComponent(f));
+    }
+    return [];
+}
+
+// 簡易サーバー(python -m http.server等)のディレクトリ一覧から画像ファイルを自動検出する
+async function loadEnergyIconList() {
+    try {
+        const res = await fetch(ENERGY_ICON_DIR);
+        if (!res.ok) throw new Error("directory listing not available");
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const files = Array.from(doc.querySelectorAll("a"))
+            .map(a => a.getAttribute("href") || "")
+            .filter(href => ENERGY_ICON_EXTENSIONS.some(ext => href.toLowerCase().endsWith(ext)));
+        if (files.length === 0) throw new Error("no images found");
+        return files.map(f => ENERGY_ICON_DIR + decodeURIComponent(f));
+    } catch (e) {
+        return getEnergyIconListFromManifest();
+    }
+}
+
+// ---- 自分で選んだ画像をブラウザ内（IndexedDB）に保存（GitHubには公開しない） ----
+const ENERGY_IMAGE_DB_NAME = "milkBottleEnergyImages";
+const ENERGY_IMAGE_DB_STORE = "images";
+
+function openEnergyImageDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(ENERGY_IMAGE_DB_NAME, 1);
+        req.onupgradeneeded = () => {
+            req.result.createObjectStore(ENERGY_IMAGE_DB_STORE, { keyPath: "id", autoIncrement: true });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function addEnergyImages(files) {
+    const db = await openEnergyImageDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(ENERGY_IMAGE_DB_STORE, "readwrite");
+        const store = tx.objectStore(ENERGY_IMAGE_DB_STORE);
+        Array.from(files).forEach(file => store.add({ blob: file }));
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function getAllEnergyImages() {
+    const db = await openEnergyImageDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(ENERGY_IMAGE_DB_STORE, "readonly");
+        const req = tx.objectStore(ENERGY_IMAGE_DB_STORE).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function clearEnergyImages() {
+    const db = await openEnergyImageDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(ENERGY_IMAGE_DB_STORE, "readwrite");
+        tx.objectStore(ENERGY_IMAGE_DB_STORE).clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function updateEnergyImageCount() {
+    const el = document.getElementById("energyImageCount");
+    if (!el) return;
+    const stored = await getAllEnergyImages();
+    el.textContent = stored.length
+        ? `登録画像: ${stored.length}枚`
+        : "登録画像なし（icon内の画像を表示中）";
+}
+
+let energyIconObjectUrl = null;
+
+async function setRandomEnergyIcon() {
+    const img = document.getElementById("energyIconImg");
+    if (!img) return;
+
+    const stored = await getAllEnergyImages();
+    if (stored.length) {
+        const blob = stored[Math.floor(Math.random() * stored.length)].blob;
+        if (energyIconObjectUrl) URL.revokeObjectURL(energyIconObjectUrl);
+        energyIconObjectUrl = URL.createObjectURL(blob);
+        img.src = energyIconObjectUrl;
+        return;
+    }
+
+    const icons = await loadEnergyIconList();
+    if (!icons.length) return;
+    if (energyIconObjectUrl) {
+        URL.revokeObjectURL(energyIconObjectUrl);
+        energyIconObjectUrl = null;
+    }
+    img.src = icons[Math.floor(Math.random() * icons.length)];
+}
+
+function getPulseCount() {
+    return Number(localStorage.getItem(STORAGE_KEYS.energyPulse)) || 0;
+}
+
+function setPulseCount(value) {
+    localStorage.setItem(STORAGE_KEYS.energyPulse, String(Math.max(0, value)));
+}
+
+function applyPulseSpeed() {
+    const icon = document.getElementById("energyIcon");
+    const levelEl = document.getElementById("energyLevelStatus");
+    if (!icon) return;
+
+    const count = getPulseCount();
+    if (count <= 0) {
+        icon.classList.remove("pulsing");
+    } else {
+        const duration = Math.max(PULSE_MIN_DURATION, PULSE_MAX_DURATION - count * PULSE_STEP);
+        icon.style.setProperty("--pulse-duration", `${duration}s`);
+        icon.classList.add("pulsing");
+    }
+
+    const size = Math.min(ICON_MAX_SIZE, ICON_MIN_SIZE + count * ICON_SIZE_STEP);
+    icon.style.setProperty("--icon-size", `${size}px`);
+
+    if (levelEl) levelEl.textContent = `Lv${count}`;
+}
+
+function addEnergy() {
+    const { history, today } = ensureTodayEnergyEntry();
+    today.energy += 1;
+    saveEnergyHistory(history);
+    setPulseCount(getPulseCount() + 1);
+    applyPulseSpeed();
+    renderEnergyGraph();
+}
+
+function removeEnergy() {
+    const { history, today } = ensureTodayEnergyEntry();
+    if (today.energy <= 0) return;
+    today.energy -= 1;
+    saveEnergyHistory(history);
+    setPulseCount(getPulseCount() - 1);
+    applyPulseSpeed();
+    renderEnergyGraph();
+}
+
+function renderEnergyGraph() {
+    const svg = document.getElementById("energyGraph");
+    if (!svg) return;
+
+    const { history } = ensureTodayEnergyEntry();
+
+    const width = 320;
+    const height = 120;
+    const padL = 22;
+    const padR = 10;
+    const padT = 22;
+    const padB = 24;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+
+    const n = history.length;
+    const actualMax = history.length ? Math.max(...history.map(e => e.energy)) : 0;
+    const maxEnergy = Math.max(5, actualMax + 1);
+
+    const points = history.map((e, i) => {
+        const x = n === 1 ? padL : padL + (plotW * i) / (n - 1);
+        const y = padT + plotH - (e.energy / maxEnergy) * plotH;
+        return { x, y, e };
+    });
+
+    const linePoints = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+    const labelStep = n > 7 ? 2 : 1;
+    const baselineY = padT + plotH;
+
+    let svgContent = `
+        <line x1="${padL}" y1="${baselineY}" x2="${width - padR}" y2="${baselineY}" stroke="#eee" stroke-width="1"/>
+        <polyline points="${linePoints}" fill="none" stroke="#ff6f91" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    `;
+
+    points.forEach((p, i) => {
+        svgContent += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#ff6f91"/>`;
+        svgContent += `<text x="${p.x.toFixed(1)}" y="${Math.max(p.y - 8, 10).toFixed(1)}" font-size="10" font-weight="700" text-anchor="middle" fill="#c25b80">${p.e.energy}</text>`;
+        if (p.e.drink) {
+            svgContent += `<text x="${p.x.toFixed(1)}" y="${baselineY + 12}" font-size="11" text-anchor="middle">💦</text>`;
+        }
+        if (i % labelStep === 0 || i === points.length - 1) {
+            const [, mo, da] = p.e.date.split("-");
+            svgContent += `<text x="${p.x.toFixed(1)}" y="${height - 4}" font-size="9" text-anchor="middle" fill="#aaa">${Number(mo)}/${Number(da)}</text>`;
+        }
+    });
+
+    svg.innerHTML = svgContent;
+}
+
+function resetEnergyForDrink() {
+    const { history, today } = ensureTodayEnergyEntry();
+    today.energy = 0;
+    today.drink = true;
+    saveEnergyHistory(history);
+    setPulseCount(0);
+    applyPulseSpeed();
+    renderEnergyGraph();
+}
+
 function drinkMilk() {
     // 噴出アニメーション
     triggerBurst();
@@ -469,16 +856,19 @@ function drinkMilk() {
         level = 0;
         setOverflow(false);
         saveLevel();
+        resetEnergyForDrink();
         updateAll();
     }, 300);
 }
 
 function clearLogs() {
     if (!confirm("Are you sure?")) return;
-    [STORAGE_KEYS.gameLogs, STORAGE_KEYS.countFull, STORAGE_KEYS.countHot, STORAGE_KEYS.countBetter, STORAGE_KEYS.countEmpty, STORAGE_KEYS.totalDrinks, STORAGE_KEYS.lastGameTime]
+    [STORAGE_KEYS.gameLogs, STORAGE_KEYS.countFull, STORAGE_KEYS.countHot, STORAGE_KEYS.countBetter, STORAGE_KEYS.countEmpty, STORAGE_KEYS.totalDrinks, STORAGE_KEYS.lastGameTime, STORAGE_KEYS.energyHistory, STORAGE_KEYS.energyPulse]
         .forEach(k => localStorage.removeItem(k));
     updateAll();
     updateRecoveryTimer();
+    renderEnergyGraph();
+    applyPulseSpeed();
 }
 
 function applyMilkRecovery() {
@@ -488,15 +878,10 @@ function applyMilkRecovery() {
     const recovered = Math.floor((Date.now() - lastGameTime) / RECOVERY_INTERVAL);
     if (recovered <= 0) return;
 
-    const prevLevel = level;
-    level = Math.min(MAX_LEVEL, level + recovered * STEP);
+    level = Math.min(HARD_MAX_LEVEL, level + recovered * STEP);
+    setOverflow(level > MAX_LEVEL);
     saveLevel();
     localStorage.setItem(STORAGE_KEYS.lastGameTime, String(lastGameTime + recovered * RECOVERY_INTERVAL));
-
-    // 満タンのままさらに回復が発生したらOVERFLOW
-    if (prevLevel >= MAX_LEVEL && recovered > 0) {
-        setOverflow(true);
-    }
 }
 
 function updateRecoveryTimer() {
@@ -520,6 +905,24 @@ function updateRecoveryTimer() {
 document.getElementById("addBtn").addEventListener("click", addMilk);
 document.getElementById("drinkBtn").addEventListener("click", drinkMilk);
 document.getElementById("clearBtn").addEventListener("click", clearLogs);
+document.getElementById("energyBtn").addEventListener("click", addEnergy);
+document.getElementById("energyMinusBtn").addEventListener("click", removeEnergy);
+document.getElementById("energyImageInput").addEventListener("change", async (e) => {
+    const files = e.target.files;
+    if (!files || !files.length) return;
+    await addEnergyImages(files);
+    e.target.value = "";
+    await updateEnergyImageCount();
+    setRandomEnergyIcon();
+});
+document.getElementById("energyImageClearBtn").addEventListener("click", async () => {
+    if (!confirm("登録した画像をすべて削除しますか？")) return;
+    await clearEnergyImages();
+    await updateEnergyImageCount();
+    setRandomEnergyIcon();
+});
+setupTabs();
+renderDateHeader();
 
 applyMilkRecovery();
 currentDisplayLevel = level;
@@ -527,12 +930,17 @@ targetDisplayLevel = level;
 updateMilkPosition(level);
 updateAll();
 updateRecoveryTimer();
+renderEnergyGraph();
+setRandomEnergyIcon();
+updateEnergyImageCount();
+applyPulseSpeed();
 animateWave();
 
 setInterval(() => {
     applyMilkRecovery();
     updateAll();
     updateRecoveryTimer();
+    renderDateHeader();
 }, 1000);
 
 // バックグラウンドから復帰した際に表示を即時再計算する
@@ -541,5 +949,6 @@ document.addEventListener("visibilitychange", () => {
         applyMilkRecovery();
         updateAll();
         updateRecoveryTimer();
+        renderDateHeader();
     }
 });
