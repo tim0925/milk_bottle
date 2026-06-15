@@ -1,7 +1,8 @@
 const MAX_LEVEL = 3;
 const HARD_MAX_LEVEL = 10;
 const STEP = 0.5;
-const RECOVERY_INTERVAL = 12 * 60 * 60 * 1000;
+const RECOVERY_STEP = 0.1;
+const RECOVERY_INTERVAL = 24 * 60 * 60 * 1000 / 10; // 24時間で1（0.1刻み）
 const LOG_LIMIT = 10;
 
 const STORAGE_KEYS = {
@@ -38,6 +39,11 @@ function getLevelState(value) {
     if (value >= 2) return { key: "hot",    label: "HOT🔥",    text: "HOT🔥",    className: "hot",    effect: "floaty" };
     if (value >= 1) return { key: "better", label: "BETTER",   text: "Better",   className: "better", effect: "floaty" };
     return              { key: "empty",  label: "EMPTY",    text: "Empty...", className: "empty",  effect: ""       };
+}
+
+// 0.1刻みの計算で生じる浮動小数点誤差(0.30000000000000004など)を補正
+function roundLevel(value) {
+    return Math.round(value * 10) / 10;
 }
 
 function saveLevel() {
@@ -542,7 +548,7 @@ function addMilk() {
         updateOverflowDisplay();
         return;
     }
-    level = Math.min(HARD_MAX_LEVEL, level + STEP);
+    level = roundLevel(Math.min(HARD_MAX_LEVEL, level + STEP));
     setOverflow(level > MAX_LEVEL);
     saveLevel();
     updateDisplay();
@@ -878,7 +884,7 @@ function applyMilkRecovery() {
     const recovered = Math.floor((Date.now() - lastGameTime) / RECOVERY_INTERVAL);
     if (recovered <= 0) return;
 
-    level = Math.min(HARD_MAX_LEVEL, level + recovered * STEP);
+    level = roundLevel(Math.min(HARD_MAX_LEVEL, level + recovered * RECOVERY_STEP));
     setOverflow(level > MAX_LEVEL);
     saveLevel();
     localStorage.setItem(STORAGE_KEYS.lastGameTime, String(lastGameTime + recovered * RECOVERY_INTERVAL));

@@ -6,7 +6,7 @@ A simple milk bottle & energy tracker with two tabs: MILK and EMOTION.
 
 ### MILK
 - Charge milk manually (+MILK)
-- Auto recovery (+0.5 every 12 hours)
+- Auto recovery (+0.1 every 2.4 hours, i.e. +1 per 24 hours)
 - Drink (💦) to empty the bottle and log the result
 - Status display continues beyond 3/3 (e.g. 3.5/3, up to 10/3), capped as "10+/3" with an OVERFLOW indicator
 - "Tracking started" shows the date of the oldest saved log
@@ -43,7 +43,7 @@ Personal project.
 
 ### MILK
 - 「+MILK」ボタンでミルク追加
-- 12時間ごとに+0.5自動回復
+- 2.4時間ごとに+0.1自動回復（24時間で+1相当）
 - 「💦」ボタンでボトルを空にしてログに記録
 - ステータス表示は3/3を超えても継続表示（例: 3.5/3）、最大10/3に達すると「10+/3」と表記しOVERFLOWを表示
 - 「Tracking started」には保存されているログの中で一番古い日時を表示
