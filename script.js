@@ -23,8 +23,8 @@ const ENERGY_HISTORY_LIMIT = 14;
 const PULSE_MAX_DURATION = 2.2; // 秒（鼓動が遅い状態・スタート時）
 const PULSE_MIN_DURATION = 0.4; // 秒（鼓動が速い状態）
 const PULSE_STEP = 0.03; // +1エナジーごとに鼓動が早くなる量
-const ICON_MIN_SIZE = 40; // px（スタート時のサイズ）
-const ICON_MAX_SIZE = 260; // px（最大サイズ・カードからはみ出るくらい大きく）
+const ICON_MIN_SIZE = 100; // px（スタート時のサイズ）
+const ICON_MAX_SIZE = 380; // px（最大サイズ・カードの横幅から少しはみ出るくらい大きく）
 const ICON_SIZE_STEP = 12; // +1エナジーごとに大きくなるサイズ
 
 let level = Number(localStorage.getItem(STORAGE_KEYS.milkLevel)) || 0;
