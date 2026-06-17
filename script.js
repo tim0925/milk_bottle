@@ -35,10 +35,10 @@ const BOTTLE_TOP_Y = 8;
 const BOTTLE_BOT_Y = 272;
 
 function getLevelState(value) {
-    if (value >= 3) return { key: "full",   label: "🍼FULL❤️", text: "🍼FULL❤️", className: "full",   effect: "pulse"  };
-    if (value >= 2) return { key: "hot",    label: "HOT🔥",    text: "HOT🔥",    className: "hot",    effect: "floaty" };
-    if (value >= 1) return { key: "better", label: "BETTER",   text: "Better",   className: "better", effect: "floaty" };
-    return              { key: "empty",  label: "EMPTY",    text: "Empty...", className: "empty",  effect: ""       };
+    if (value >= 3)   return { key: "full",   label: "🍼FULL❤️", text: "🍼FULL❤️", className: "full",   effect: "pulse"  };
+    if (value >= 1.5) return { key: "hot",    label: "HOT🔥",    text: "HOT🔥",    className: "hot",    effect: "floaty" };
+    if (value >= 0.6) return { key: "better", label: "BETTER",   text: "Better",   className: "better", effect: "floaty" };
+    return                   { key: "empty",  label: "EMPTY",    text: "Empty...", className: "empty",  effect: ""       };
 }
 
 // 0.1刻みの計算で生じる浮動小数点誤差(0.30000000000000004など)を補正
@@ -841,7 +841,6 @@ function renderEnergyGraph() {
 
 function resetEnergyForDrink() {
     const { history, today } = ensureTodayEnergyEntry();
-    today.energy = 0;
     today.drink = true;
     saveEnergyHistory(history);
     setPulseCount(0);
