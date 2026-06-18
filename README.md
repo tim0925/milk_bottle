@@ -23,6 +23,7 @@ A simple milk bottle & energy tracker with two tabs: MILK and EMOTION.
 - Floating heart effects based on energy level
 - Random illustration shown in the energy icon, re-randomized each time you open the EMOTION tab
 - Add your own images via "画像を追加" — stored locally in the browser (IndexedDB), never uploaded to GitHub; falls back to the bundled `icon/` folder if none are registered
+- Optional "PCから同期" panel: save a private URL (e.g. a secret Gist raw URL) pointing to a JSON array of data URLs, then tap "今すぐ同期" to pull that image set into the device's IndexedDB. The URL is stored only in that browser's localStorage and is never committed to the repo, so other visitors of the public site never see it or the images it points to.
 
 ## General
 - Tab navigation (MILK / EMOTION) with a date header
@@ -60,6 +61,7 @@ Personal project.
 - エナジー量に応じたハートの浮遊エフェクト
 - アイコンにはランダムな画像を表示し、EMOTIONタブを開くたびに切り替わる
 - 「画像を追加」から自分の好きな画像を登録可能。画像はブラウザ内（IndexedDB）に保存されGitHubには公開されない。未登録の場合は同梱の`icon/`フォルダの画像を表示
+- 「PCから同期（任意設定）」：data URL（base64画像）の配列を返すJSONを置いた秘密のURL（例: secret Gistのraw URL）を保存しておくと、「今すぐ同期」一発でその画像セットを取り込める。URLはそのブラウザのlocalStorageにのみ保存され、リポジトリには含まれないため、公開サイトの他の利用者には見えない
 
 ## その他
 - 日付ヘッダー付きのタブ切り替え（MILK / EMOTION）

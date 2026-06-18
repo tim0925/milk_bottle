@@ -3,7 +3,7 @@ const HARD_MAX_LEVEL = 10;
 const STEP = 0.5;
 const RECOVERY_STEP = 0.1;
 const RECOVERY_INTERVAL = 24 * 60 * 60 * 1000 / 10; // 24時間で1（0.1刻み）
-const LOG_LIMIT = 10;
+const LOG_LIMIT = 500;
 
 const STORAGE_KEYS = {
     milkLevel: "milkLevel",
@@ -16,7 +16,8 @@ const STORAGE_KEYS = {
     isOverflow: "isOverflow",
     totalDrinks: "totalDrinks",
     energyHistory: "energyHistory",
-    energyPulse: "energyPulse"
+    energyPulse: "energyPulse",
+    energySyncUrl: "energySyncUrl"
 };
 
 const ENERGY_HISTORY_LIMIT = 14;
@@ -710,6 +711,40 @@ async function clearEnergyImages() {
     });
 }
 
+// ---- PCで用意した画像セットを秘密URL経由でこの端末に取り込む ----
+// URLは自分のブラウザ（localStorage）にのみ保存され、リポジトリには含まれないため
+// 他の利用者には公開されない。取得先には data URL の配列（JSON）を置いておくこと。
+function getEnergySyncUrl() {
+    return localStorage.getItem(STORAGE_KEYS.energySyncUrl) || "";
+}
+
+function saveEnergySyncUrl(url) {
+    if (url) {
+        localStorage.setItem(STORAGE_KEYS.energySyncUrl, url);
+    } else {
+        localStorage.removeItem(STORAGE_KEYS.energySyncUrl);
+    }
+}
+
+async function syncEnergyImagesFromUrl(url) {
+    const statusEl = document.getElementById("energySyncStatus");
+    if (statusEl) statusEl.textContent = "同期中…";
+    try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("fetch failed");
+        const list = await res.json();
+        if (!Array.isArray(list) || !list.length) throw new Error("empty list");
+        const blobs = await Promise.all(list.map(async (dataUrl) => (await fetch(dataUrl)).blob()));
+        await clearEnergyImages();
+        await addEnergyImages(blobs);
+        await updateEnergyImageCount();
+        setRandomEnergyIcon();
+        if (statusEl) statusEl.textContent = `同期完了（${blobs.length}枚）`;
+    } catch (e) {
+        if (statusEl) statusEl.textContent = "同期に失敗しました";
+    }
+}
+
 async function updateEnergyImageCount() {
     const el = document.getElementById("energyImageCount");
     if (!el) return;
@@ -925,6 +960,20 @@ document.getElementById("energyImageClearBtn").addEventListener("click", async (
     await clearEnergyImages();
     await updateEnergyImageCount();
     setRandomEnergyIcon();
+});
+const energySyncUrlInput = document.getElementById("energySyncUrlInput");
+if (energySyncUrlInput) energySyncUrlInput.value = getEnergySyncUrl();
+document.getElementById("energySyncSaveBtn").addEventListener("click", () => {
+    saveEnergySyncUrl(energySyncUrlInput.value.trim());
+    document.getElementById("energySyncStatus").textContent = "URLを保存しました";
+});
+document.getElementById("energySyncNowBtn").addEventListener("click", () => {
+    const url = getEnergySyncUrl();
+    if (!url) {
+        document.getElementById("energySyncStatus").textContent = "先にURLを保存してください";
+        return;
+    }
+    syncEnergyImagesFromUrl(url);
 });
 setupTabs();
 renderDateHeader();

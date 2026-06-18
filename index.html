@@ -124,6 +124,18 @@
                 <button id="energyImageClearBtn" class="btn-small" type="button">登録画像を削除</button>
                 <div id="energyImageCount" class="energy-image-count"></div>
             </div>
+
+            <details class="energy-sync-manager">
+                <summary class="btn-small">PCから同期（任意設定）</summary>
+                <div class="energy-sync-body">
+                    <input id="energySyncUrlInput" type="url" class="energy-sync-input" placeholder="自分専用の同期URL" />
+                    <div class="energy-sync-actions">
+                        <button id="energySyncSaveBtn" class="btn-small" type="button">URLを保存</button>
+                        <button id="energySyncNowBtn" class="btn-small" type="button">今すぐ同期</button>
+                    </div>
+                    <div id="energySyncStatus" class="energy-image-count"></div>
+                </div>
+            </details>
         </div>
 
         </div>
