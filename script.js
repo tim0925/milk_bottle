@@ -806,6 +806,37 @@ function applyPulseSpeed() {
     if (levelEl) levelEl.textContent = `Lv${count}`;
 }
 
+// ---- 鼓動アイコンをタップして拡大表示（ライトボックス） ----
+// 鼓動・Lv・ランダム表示の状態には一切触らず、表示中の画像をそのまま大きく見せるだけ。
+function openEnergyLightbox() {
+    const iconImg = document.getElementById("energyIconImg");
+    const lightbox = document.getElementById("energyLightbox");
+    const lightboxImg = document.getElementById("energyLightboxImg");
+    if (!iconImg || !lightbox || !lightboxImg) return;
+    if (!iconImg.src) return; // 画像が無いときは開かない
+    lightboxImg.src = iconImg.src; // いま表示中の画像をそのまま拡大
+    lightbox.classList.add("open");
+}
+
+function closeEnergyLightbox() {
+    const lightbox = document.getElementById("energyLightbox");
+    if (lightbox) lightbox.classList.remove("open");
+}
+
+function setupEnergyLightbox() {
+    const icon = document.getElementById("energyIcon");
+    const lightbox = document.getElementById("energyLightbox");
+    const closeBtn = document.getElementById("energyLightboxClose");
+    const inner = lightbox ? lightbox.querySelector(".energy-lightbox-inner") : null;
+    if (!icon || !lightbox) return;
+
+    icon.addEventListener("click", openEnergyLightbox);
+    lightbox.addEventListener("click", closeEnergyLightbox); // 背景タップで閉じる
+    if (inner) inner.addEventListener("click", (e) => e.stopPropagation()); // 画像タップでは閉じない
+    if (closeBtn) closeBtn.addEventListener("click", (e) => { e.stopPropagation(); closeEnergyLightbox(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeEnergyLightbox(); });
+}
+
 function addEnergy() {
     const { history, today } = ensureTodayEnergyEntry();
     today.energy += 1;
@@ -976,6 +1007,7 @@ document.getElementById("energySyncNowBtn").addEventListener("click", () => {
     syncEnergyImagesFromUrl(url);
 });
 setupTabs();
+setupEnergyLightbox();
 renderDateHeader();
 
 applyMilkRecovery();

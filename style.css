@@ -329,6 +329,7 @@ button:active { background: #e8e8e8; }
     background: linear-gradient(135deg, #ffe1ec, #fff8fa);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     overflow: hidden;
+    cursor: pointer;
     transition: width 0.3s ease, height 0.3s ease, margin 0.3s ease;
 }
 
@@ -427,6 +428,70 @@ button:active { background: #e8e8e8; }
 .energy-sync-actions {
     display: flex;
     gap: 8px;
+}
+
+/* ---- 鼓動アイコンのタップ拡大（ライトボックス） ---- */
+.energy-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(20, 10, 16, 0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+}
+
+.energy-lightbox.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.energy-lightbox-inner {
+    position: relative;
+    max-width: 90vw;
+    max-height: 86vh;
+    transform: scale(0.9);
+    transition: transform 0.24s cubic-bezier(.2, .8, .3, 1.2);
+}
+
+.energy-lightbox.open .energy-lightbox-inner {
+    transform: scale(1);
+}
+
+.energy-lightbox-img {
+    display: block;
+    max-width: 90vw;
+    max-height: 86vh;
+    width: auto;
+    height: auto;
+    border-radius: 14px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    background: #fff;
+}
+
+.energy-lightbox-close {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    color: #c25b80;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 @media (max-width: 480px) {
