@@ -1332,7 +1332,7 @@ updateReaction();
 
 setInterval(() => {
     applyMilkRecovery();
-    updateAll();
+    updateDisplay();
     updateRecoveryTimer();
     renderDateHeader();
 }, 1000);
@@ -1341,7 +1341,7 @@ setInterval(() => {
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
         applyMilkRecovery();
-        updateAll();
+        updateDisplay();
         updateRecoveryTimer();
         renderDateHeader();
     }
