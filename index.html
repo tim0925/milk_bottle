@@ -106,6 +106,18 @@
         <details class="reaction-char-manager">
             <summary class="btn-small">リアクションキャラ設定</summary>
             <div class="reaction-char-list" id="reactionCharList"></div>
+
+            <details class="energy-sync-manager">
+                <summary class="btn-small">セリフをPCから同期（任意設定）</summary>
+                <div class="energy-sync-body">
+                    <input id="reactionLinesSyncUrlInput" type="url" class="energy-sync-input" placeholder="自分専用の同期URL" />
+                    <div class="energy-sync-actions">
+                        <button id="reactionLinesSyncSaveBtn" class="btn-small" type="button">URLを保存</button>
+                        <button id="reactionLinesSyncNowBtn" class="btn-small" type="button">今すぐ同期</button>
+                    </div>
+                    <div id="reactionLinesSyncStatus" class="energy-image-count"></div>
+                </div>
+            </details>
         </details>
 
         <!-- 噴出パーティクル用Canvas（カード・タイトルをまたいで最前面に表示） -->

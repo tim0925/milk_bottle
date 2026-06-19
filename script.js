@@ -17,7 +17,9 @@ const STORAGE_KEYS = {
     totalDrinks: "totalDrinks",
     energyHistory: "energyHistory",
     energyPulse: "energyPulse",
-    energySyncUrl: "energySyncUrl"
+    energySyncUrl: "energySyncUrl",
+    reactionLinesSyncUrl: "reactionLinesSyncUrl",
+    reactionLinesOverride: "reactionLinesOverride"
 };
 
 const ENERGY_HISTORY_LIMIT = 14;
@@ -979,7 +981,9 @@ function updateRecoveryTimer() {
 }
 
 // ---- リアクションキャラ ----
-const REACTION_CHAR_LABELS = {
+// 以下はファイル読み込みに失敗した場合（file://で直接開いた等）に使うデフォルト値。
+// 通常は起動時に reaction_lines.txt を読み込んで上書きされる。
+let REACTION_CHAR_LABELS = {
     genki: "元気タメ口系",
     onesan: "優しいお姉さん系",
     amae: "甘え上手なからかい系",
@@ -1002,9 +1006,9 @@ const REACTION_CHAR_LABELS = {
     dom: "女王様系・完全に上から、命令形多用"
 };
 
-const REACTION_CHAR_IDS = Object.keys(REACTION_CHAR_LABELS);
+let REACTION_CHAR_IDS = Object.keys(REACTION_CHAR_LABELS);
 
-const REACTION_CHARS = {
+let REACTION_CHARS = {
     genki: {
         empty: ["からっぽだ〜！まあここからっしょ！", "空っぽだって関係ない！これから気持ちよくなろうね", "今が一番気合入るとこじゃん！どんどん盛っていこう！", "空っぽ？ぜんぜん気にしない気にしない！"],
         better: ["お〜溜まってきた溜まってきた！", "いい感じじゃん、その調子その調子！", "ちょっとずつ増えてる、ナイス！", "うんうん、順調だね〜！"],
@@ -1014,15 +1018,15 @@ const REACTION_CHARS = {
     },
     onesan: {
         empty: ["まだ始まったばかりだよ、ここから溜めていこう", "今日はゆっくりでいいんだよ、焦らないで", "空っぽも悪くない、いったんリセットだね", "空っぽな今のきみも、ちゃんと見てるよ"],
-        better: ["お、だいぶ溜まってきたね。気持ちよくなってきたでしょ？", "うんうん、順調そのものだよ。もっと欲しくなってきた？", "ちゃんと前に進んでるよ、えらい", "ここまで来たら、止まらないでね…、その調子"],
-        hot: ["もうすぐ満タンだよ…気持ちいいね、それ？", "見てるこっちまでアツくなってきた…", "ここまで溜めたら、もう戻れないよ…ね？", "すごいすごい、あと少しで満タンだね", "きみならフルまで行けるって信じてたよ？", "いい流れ来てる、この勢いに乗っちゃえ"],
-        full: ["満タンだ〜！よくここまで溜めたね", "完璧、もう何も言わなくていい、ただ感じてて", "こんなにいっぱいになって、気持ちよさそうだね", "たくさん我慢したんだね…全部出していいよ"],
+        better: ["お、だいぶ溜まってきたね。手応え感じてきたでしょ？", "うんうん、順調そのものだよ。もっと欲しくなってきた？", "ちゃんと前に進んでるよ、えらい", "ここまで来たら、止まらないでね…、その調子"],
+        hot: ["もうすぐ満タンだよ…ドキドキしてるでしょ？", "見てるこっちまでアツくなってきた…", "ここまで溜めたら、もう戻れないよ…ね？", "すごいすごい、あと少しで満タンだね", "きみならフルまで行けるって信じてたよ？", "いい流れ来てる、この勢いに乗っちゃえ"],
+        full: ["満タンだ〜！よくここまで溜めたね", "完璧、もう何も言わなくていい、ただ感じてて", "こんなにいっぱいになって、嬉しそうだね", "たくさん頑張ったんだね…もう力を抜いていいよ"],
         overflow: ["あふれてる、あふれてるって！", "すごすぎて器が追いついてないよ", "こんなに溢すなんて、よっぽど溜まってたんだね"]
     },
     amae: {
         empty: ["うっわ、見事に空っぽじゃん〜", "え、こんなにスカスカでいいの？笑", "からっぽすぎてこっちが心配になるんだけど", "ねぇ、ちゃんと溜めてよ〜"],
         better: ["ふーん、ちょっとはやる気出したみたいだね？", "まだまだ序の口だけどね〜", "へぇ、やればできるんだ？笑", "このくらいで満足しないでよ？"],
-        hot: ["ふふ、いい顔になってきたじゃん", "もうこぼしそうだけど大丈夫？", "調子乗りすぎて溢れさせないでよ〜", "急にアツくなっちゃって、どうしたの〜", "このまま溢れさせちゃう気でしょ、欲張りさん", "ねえ、このままイっちゃう？それとも…まだ我慢する？"],
+        hot: ["ふふ、いい顔になってきたじゃん", "もうこぼしそうだけど大丈夫？", "調子乗りすぎて溢れさせないでよ〜", "急にアツくなっちゃって、どうしたの〜", "このまま溢れさせちゃう気でしょ、欲張りさん", "ねえ、このまま全部見せちゃう？それとも…まだ隠す？"],
         full: ["うっわ満タン、欲張りさんめ〜笑", "やればできるじゃん、見直したよ", "満タンにしないと気が済まないタイプ？笑", "ここまで溜めるとはね、やるねぇ"],
         overflow: ["ちょっと、溜めすぎでしょ！？笑", "こぼれてるよ〜もったいない！", "もう手がつけられないって、きみ"]
     },
@@ -1113,23 +1117,23 @@ const REACTION_CHARS = {
     shitsuji: {
         empty: ["何もおありになりませんね…ご主人様、情けないですよ", "何も入っておりませんね。お紅茶でもお淹れしてお待ちします", "何もない状態は、私がもっとも管理しやすい状態でございます", "これがご主人様の実力でございますか？正直、拍子抜けでございます"],
         better: ["おや、溜まってまいりましたね。さすがでございます", "順調な滑り出しかと。引き続きお任せください", "まだまだですが…ご主人様にも可能性はあるようです", "半ばまでもう少々。お見守りしております"],
-        hot: ["もうこんなに溜まって…ご主人様、我慢なさってますね？", "満タンが見えてまいりました。あと一押しを", "あと少しで溢れますよ…どうなさいます？お止めしますか？", "ご主人様の本気、しかと拝見しております", "ご主人様のそのお顔、限界が近いんですね", "ここまで来られましたか。立派でございます"],
+        hot: ["もうこんなに溜まって…ご主人様、よほど頑張られたのですね", "満タンが見えてまいりました。あと一押しを", "あと少しで溢れますよ…どうなさいます？お止めしますか？", "ご主人様の本気、しかと拝見しております", "ご主人様のそのお顔、限界が近いんですね", "ここまで来られましたか。立派でございます"],
         full: ["満タンでございます。よくここまでお持ちになりました", "お見事。わたくし、感服いたしました", "いっぱいになりましたね。さあ、どうなさいます？", "最高の仕上がりでございます。お疲れ様でした"],
         overflow: ["あ…溢れておりますね。ご主人様、お粗末でございます", "少々溜めすぎかと。布巾をご用意いたします", "お恥ずかしいお姿ですが…私には正直にご報告ください"]
     },
     ai: {
-        empty: ["観測対象：残量ゼロ。蓄積プロセスの開始を待機する", "蓄積がゼロの場合、快感は発生しません。早急に充填を", "残量はゼロ。これより計測を継続する", "空の状態を記録。次の補充を待つ"],
+        empty: ["観測対象：残量ゼロ。蓄積プロセスの開始を待機する", "充填量ゼロの場合、評価対象が存在しません。早急に充填を", "残量はゼロ。これより計測を継続する", "空の状態を記録。次の補充を待つ"],
         better: ["蓄積を検知。数値は上昇傾向にある", "順調な蓄積です。このまま継続を推奨します", "感覚値の上昇を観測。観測対象の出力は安定している。", "中間地点に接近中。データは正常範囲内です。"],
-        hot: ["数値が急上昇。まもなく限界値です", "ユーザーの生体反応が加速しています。制御不能まであと少し", "分泌を確認。ピーク到達は時間の問題と予測する", "心拍数上昇中。ユーザーは明らかに快感を求めています", "蓄積率は理想値に近い。継続を推奨"],
-        full: ["完全に満たされました。データとして優秀です", "完璧な結果。快感値100%を記録", "これ以上の蓄積は不可能です。おめでとうございます", "満タン状態を確認。申し分ない数値だ"],
-        overflow: ["上限超過。快感値は計測不能です", "上限を逸脱。予想以上の溢出です。", "オーバーフローを検知。ユーザーは制御を失いました"]
+        hot: ["数値が急上昇。まもなく限界値です", "ユーザーの生体反応が加速しています。制御不能まであと少し", "反応値を確認。ピーク到達は時間の問題と予測する", "心拍数上昇中。ユーザーの反応値は限界に近づいています", "蓄積率は理想値に近い。継続を推奨"],
+        full: ["完全に満たされました。データとして優秀です", "完璧な結果。反応値100%を記録", "これ以上の蓄積は不可能です。おめでとうございます", "満タン状態を確認。申し分ない数値だ"],
+        overflow: ["上限超過。反応値は計測不能です", "上限を逸脱。予想以上の溢出です。", "オーバーフローを検知。ユーザーは制御を失いました"]
     },
     seijo: {
         empty: ["空っぽでも大丈夫、あなたはあなたのままで尊いのです", "祈りましょう…あなたがたっぷり満たされますように", "汚れていないからこそ、これからたくさん注いであげます", "からっぽな心にも、これから光が満ちていきます"],
         better: ["おや…少しずつ満ちてきましたね。よく頑張りました", "あなたの歩みを、わたくしは祝福しています", "着実に育っていますね。誇りに思いますよ", "この調子で、ゆっくり満たしていきましょう"],
-        hot: ["まあ、こんなに満ちて…とってもお下品ですよ", "もう少しで満タンですね。こんなに熱くなって…", "あなたの頑張りが、こうして実っているのですね", "あと少しです。我慢なさって…神様も見てますよ", "まだ耐えていらっしゃる。健気ですね", "もっと汚れなさい。私がきれいにしてあげますから"],
+        hot: ["まあ、こんなに満ちて…とっても情熱的ですよ", "もう少しで満タンですね。こんなに熱くなって…", "あなたの頑張りが、こうして実っているのですね", "あと少しです。我慢なさって…神様も見てますよ", "まだ耐えていらっしゃる。健気ですね", "もっと満ちなさい。私がそっと寄り添ってあげますから"],
         full: ["満タンです…よく耐えましたね。偉いですよ", "見事に満ちました。心から祝福いたします", "完璧です。あなたを誇りに思いますよ", "満たされたあなたは、本当に美しい…"],
-        overflow: ["まあ、あふれてしまいましたね。豊かなことです", "こんなに汚れて…でも、それがあなたの本物です", "あら…溢れてしまいましたね。清らかだったあなたが…"]
+        overflow: ["まあ、あふれてしまいましたね。豊かなことです", "こんなに満ちて…でも、それがあなたの本物です", "あら…溢れてしまいましたね。清らかだったあなたが…"]
     },
     kouhai: {
         empty: ["あれ、空っぽっすか？先輩しっかりしてくださいよ〜", "なんもないじゃないっすか、もう〜", "ゼロからとか、先輩らしいといえば先輩らしい？笑", "からっぽっすね。まあ手伝ってあげてもいいっすけど"],
@@ -1139,13 +1143,128 @@ const REACTION_CHARS = {
         overflow: ["溢れてるじゃないっすか、溜めすぎっすよ笑", "やりすぎっす先輩〜、ほどほどに〜", "こぼれてるって、もう〜世話が焼けるなぁ"]
     },
     dom: {
-        empty: ["空っぽじゃない。さっさと溜めなさい", "何もないわね。わたしを失望させないで", "ゼロですって？お前、本当に使えない奴隷だな", "溜めることもできないのか？お前の価値はそれだけか？"],
-        better: ["ようやく始めたか。遅いぞ、奴隷", "この程度で満足するな。まだまだ続くぞ", "少しはマシになってきた…だが、まだまだだ", "やればできるじゃない。続けなさい"],
+        empty: ["空っぽじゃない。さっさと溜めなさい", "何もないわね。わたしを失望させないで", "ゼロですって？まったく、しっかりしなさい", "溜めることもできないの？それじゃ話にならないわ"],
+        better: ["ようやく始めたわね。遅いわよ", "この程度で満足するな。まだまだ続くぞ", "少しはマシになってきた…だが、まだまだだ", "やればできるじゃない。続けなさい"],
         hot: ["いいわよ、その調子。もっと溜めなさい", "あと少しだ。ここで我慢しろ、命令だ", "ようやくわたしの期待に応えてきたわね", "ここまで来たのだから、最後までやりなさい", "悪くないペースよ。そのまま続けなさい", "フルまで行きなさい。途中でやめたら承知しないわよ"],
-        full: ["満タンだ。よく我慢したな、奴隷", "よくやったわ。褒めてあげる、特別にね", "完璧じゃない。最初からこうしなさい", "合格よ。次もこの調子を保ちなさい"],
+        full: ["満タンだ。よく我慢したわね", "よくやったわ。褒めてあげる、特別にね", "完璧じゃない。最初からこうしなさい", "合格よ。次もこの調子を保ちなさい"],
         overflow: ["溢れさせるなんて、やりすぎよ", "加減を知りなさい。まったく…", "規格外ね。でも、嫌いじゃないわ"]
     }
 };
+
+// ---- reaction_lines.txt（メモと同じ書式）を読み込んでキャラ・セリフを上書きする ----
+// 書式: "id（ラベル）" の見出し行 → "[band]" 見出し → セリフを1行ずつ。
+// キャラ同士は "====...====" の行、見出しの下は "----...----" の行で区切る（どちらも任意の長さでよい）。
+function parseReactionLinesText(text) {
+    const labels = {};
+    const chars = {};
+    const ids = [];
+    const blocks = text.split(/^=+$/m);
+
+    for (const block of blocks) {
+        const lines = block.split("\n");
+        let headerLine = null;
+        let headerIndex = -1;
+        for (let i = 0; i < lines.length; i++) {
+            const t = lines[i].trim();
+            if (!t || /^-+$/.test(t)) continue;
+            headerLine = t;
+            headerIndex = i;
+            break;
+        }
+        if (!headerLine) continue;
+
+        const m = headerLine.match(/^([A-Za-z0-9_]+)（(.+)）$/);
+        if (!m) continue;
+        const id = m[1];
+        labels[id] = m[2];
+        ids.push(id);
+        chars[id] = { empty: [], better: [], hot: [], full: [], overflow: [] };
+
+        let currentBand = null;
+        for (let i = headerIndex + 1; i < lines.length; i++) {
+            const t = lines[i].trim();
+            if (!t || /^-+$/.test(t)) continue;
+            const bandMatch = t.match(/^\[(\w+)\]$/);
+            if (bandMatch) {
+                currentBand = bandMatch[1];
+                continue;
+            }
+            if (currentBand && chars[id][currentBand]) {
+                chars[id][currentBand].push(t.replace(/\s*\[修正\]\s*$/, ""));
+            }
+        }
+    }
+    return { labels, chars, ids };
+}
+
+function applyReactionData(parsed) {
+    REACTION_CHAR_LABELS = parsed.labels;
+    REACTION_CHARS = parsed.chars;
+    REACTION_CHAR_IDS = parsed.ids;
+
+    renderReactionCharList();
+    refreshAllReactionCharPreviews();
+    updateReaction();
+}
+
+async function loadReactionLinesFromFile() {
+    try {
+        const res = await fetch("reaction_lines.txt", { cache: "no-store" });
+        if (!res.ok) return;
+        const text = await res.text();
+        const parsed = parseReactionLinesText(text);
+        if (!parsed.ids.length) return;
+        applyReactionData(parsed);
+    } catch (e) {
+        // file://で直接開いた場合などはfetchできないので、内蔵デフォルトのまま動作する
+    }
+}
+
+// ---- セリフをPCから秘密URL経由で同期する（EMOTION画像の同期と同じ仕組み） ----
+// reaction_lines.txt はGitHub Pagesで公開されるため、誰でも閲覧できる内容のみを置く。
+// 自分専用にしたいセリフは、秘密のGist等にこの形式のテキストを置き、そのURLをここで登録する。
+// URLと取得結果はこの端末のlocalStorageにのみ保存され、リポジトリには含まれない。
+function getReactionLinesSyncUrl() {
+    return localStorage.getItem(STORAGE_KEYS.reactionLinesSyncUrl) || "";
+}
+
+function saveReactionLinesSyncUrl(url) {
+    if (url) {
+        localStorage.setItem(STORAGE_KEYS.reactionLinesSyncUrl, url);
+    } else {
+        localStorage.removeItem(STORAGE_KEYS.reactionLinesSyncUrl);
+    }
+}
+
+function loadReactionLinesOverrideFromStorage() {
+    const raw = localStorage.getItem(STORAGE_KEYS.reactionLinesOverride);
+    if (!raw) return false;
+    try {
+        const parsed = JSON.parse(raw);
+        if (!parsed.ids || !parsed.ids.length) return false;
+        applyReactionData(parsed);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function syncReactionLinesFromUrl(url) {
+    const statusEl = document.getElementById("reactionLinesSyncStatus");
+    if (statusEl) statusEl.textContent = "同期中…";
+    try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("fetch failed");
+        const text = await res.text();
+        const parsed = parseReactionLinesText(text);
+        if (!parsed.ids.length) throw new Error("empty");
+        localStorage.setItem(STORAGE_KEYS.reactionLinesOverride, JSON.stringify(parsed));
+        applyReactionData(parsed);
+        if (statusEl) statusEl.textContent = `同期完了（${parsed.ids.length}体）`;
+    } catch (e) {
+        if (statusEl) statusEl.textContent = "同期に失敗しました";
+    }
+}
 
 // ---- リアクションキャラ画像（IndexedDB、EMOTION用画像とは別ストア） ----
 const REACTION_IMAGE_DB_NAME = "milkBottleReactionImages";
@@ -1352,9 +1471,26 @@ document.getElementById("energySyncNowBtn").addEventListener("click", () => {
     }
     syncEnergyImagesFromUrl(url);
 });
+const reactionLinesSyncUrlInput = document.getElementById("reactionLinesSyncUrlInput");
+if (reactionLinesSyncUrlInput) reactionLinesSyncUrlInput.value = getReactionLinesSyncUrl();
+document.getElementById("reactionLinesSyncSaveBtn").addEventListener("click", () => {
+    saveReactionLinesSyncUrl(reactionLinesSyncUrlInput.value.trim());
+    document.getElementById("reactionLinesSyncStatus").textContent = "URLを保存しました";
+});
+document.getElementById("reactionLinesSyncNowBtn").addEventListener("click", () => {
+    const url = getReactionLinesSyncUrl();
+    if (!url) {
+        document.getElementById("reactionLinesSyncStatus").textContent = "先にURLを保存してください";
+        return;
+    }
+    syncReactionLinesFromUrl(url);
+});
 setupTabs();
 setupEnergyLightbox();
 setupReactionCharUI();
+if (!loadReactionLinesOverrideFromStorage()) {
+    loadReactionLinesFromFile();
+}
 renderDateHeader();
 
 applyMilkRecovery();
