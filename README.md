@@ -14,7 +14,7 @@ A simple milk bottle & energy tracker with two tabs: MILK and EMOTION.
 - Activity logs
 - Achievement counters
 - Floating heart effects based on fill level
-- Reaction characters: a random one of 15 personalities comments on the current milk level (empty/better/hot/full/overflow) via a face thumbnail + speech bubble. Re-rolled on page load, on switching to the MILK tab, on +MILK, and on 💦 — not on the per-second/auto-recovery tick. Register a face image per personality via "リアクションキャラ設定"; images are center-cropped, resized, and stored locally (IndexedDB), never uploaded to GitHub. Personalities without a registered image show the line with no face thumbnail.
+- Reaction characters: a random one of 20 personalities comments on the current milk level (empty/better/hot/full/overflow) via a face thumbnail + speech bubble. Re-rolled on page load, on switching to the MILK tab, on +MILK, and on 💦 — not on the per-second/auto-recovery tick. Register a face image per personality via "リアクションキャラ設定"; images are center-cropped, resized, and stored locally (IndexedDB), never uploaded to GitHub. Personalities without a registered image show the line with no face thumbnail.
 
 ### EMOTION
 - ⚡ button to add energy, "-" to subtract
@@ -54,7 +54,7 @@ Personal project.
 - プレイ履歴の記録
 - 達成回数の集計
 - ミルクの溜まり具合に応じたハートの浮遊エフェクト
-- リアクションキャラ：15体の性格からランダムに1体が選ばれ、現在のミルク帯（empty/better/hot/full/overflow）に応じたセリフを顔アイコン＋吹き出しで表示。引き直しはページ読み込み時・MILKタブ表示時・+MILK時・💦時のみ（毎秒の自動回復処理では引き直さない）。「リアクションキャラ設定」から性格ごとに顔画像を登録可能（中央正方形クロップ＋縮小してIndexedDBに保存、GitHubには公開されない）。画像未登録の性格はセリフのみ表示（顔枠は非表示）
+- リアクションキャラ：20体の性格からランダムに1体が選ばれ、現在のミルク帯（empty/better/hot/full/overflow）に応じたセリフを顔アイコン＋吹き出しで表示。引き直しはページ読み込み時・MILKタブ表示時・+MILK時・💦時のみ（毎秒の自動回復処理では引き直さない）。「リアクションキャラ設定」から性格ごとに顔画像を登録可能（中央正方形クロップ＋縮小してIndexedDBに保存、GitHubには公開されない）。画像未登録の性格はセリフのみ表示（顔枠は非表示）
 
 ### EMOTION
 - 「⚡」ボタンでエナジー追加、「-」で減少
