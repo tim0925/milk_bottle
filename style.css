@@ -207,6 +207,136 @@ h2 {
     line-height: 1.6;
 }
 
+/* ---- リアクションキャラ（顔ワイプ＋吹き出し） ---- */
+.reaction-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px;
+}
+
+.reaction-face-wrap {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #f3cdd8;
+    background: #fff;
+}
+
+.reaction-face-wrap.no-face {
+    display: none;
+}
+
+.reaction-face-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.reaction-bubble {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    background: #fff8fa;
+    border: 1px solid #f3cdd8;
+    border-radius: 14px;
+    padding: 10px 12px;
+    text-align: left;
+}
+
+.reaction-row:has(.reaction-face-wrap.no-face) .reaction-bubble::before,
+.reaction-row:has(.reaction-face-wrap.no-face) .reaction-bubble::after {
+    display: none;
+}
+
+.reaction-bubble::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 18px;
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 7px solid #f3cdd8;
+}
+
+.reaction-bubble::after {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 18px;
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 7px solid #fff8fa;
+}
+
+.reaction-text {
+    font-size: 14px;
+    color: #c25b80;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+/* ---- リアクションキャラ設定（登録UI） ---- */
+.reaction-char-manager {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.reaction-char-manager summary {
+    display: inline-block;
+    cursor: pointer;
+}
+
+.reaction-char-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.reaction-char-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px dotted #ddd;
+    text-align: left;
+}
+
+.reaction-char-label {
+    flex: 1 1 auto;
+    font-size: 13px;
+    min-width: 0;
+}
+
+.reaction-char-preview-wrap {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #f3cdd8;
+    background: #fff;
+}
+
+.reaction-char-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+.reaction-char-preview.has-image {
+    display: block;
+}
+
 .actions {
     display: flex;
     justify-content: center;
@@ -311,7 +441,7 @@ button:active { background: #e8e8e8; }
     position: relative;
     height: 380px;
     margin: 4px 0 12px;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .energy-icon {
@@ -453,8 +583,8 @@ button:active { background: #e8e8e8; }
 
 .energy-lightbox-inner {
     position: relative;
-    max-width: 90vw;
-    max-height: 86vh;
+    max-width: 98vw;
+    max-height: 96vh;
     transform: scale(0.9);
     transition: transform 0.24s cubic-bezier(.2, .8, .3, 1.2);
 }
@@ -465,8 +595,8 @@ button:active { background: #e8e8e8; }
 
 .energy-lightbox-img {
     display: block;
-    max-width: 90vw;
-    max-height: 86vh;
+    max-width: 98vw;
+    max-height: 96vh;
     width: auto;
     height: auto;
     border-radius: 14px;
@@ -475,11 +605,11 @@ button:active { background: #e8e8e8; }
 }
 
 .energy-lightbox-close {
-    position: absolute;
-    top: -14px;
-    right: -14px;
-    width: 36px;
-    height: 36px;
+    position: fixed;
+    top: max(10px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
+    width: 40px;
+    height: 40px;
     padding: 0;
     border: none;
     border-radius: 50%;
@@ -492,6 +622,7 @@ button:active { background: #e8e8e8; }
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1000;
 }
 
 @media (max-width: 480px) {

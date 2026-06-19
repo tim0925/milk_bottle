@@ -29,6 +29,15 @@
 
         <div class="bottle-card">
 
+            <div class="reaction-row" id="reactionRow">
+                <div class="reaction-face-wrap" id="reactionFaceWrap">
+                    <img id="reactionFaceImg" class="reaction-face-img" alt="" />
+                </div>
+                <div class="reaction-bubble">
+                    <div id="reactionText" class="reaction-text"></div>
+                </div>
+            </div>
+
             <!-- ボトルラッパー -->
             <div class="bottle-wrapper">
                 <!-- ミルクの溜まり具合に応じて瓶の左右に出現する❤ -->
@@ -93,6 +102,11 @@
             <h2>Logs</h2>
             <div id="logList" class="log-list"></div>
         </section>
+
+        <details class="reaction-char-manager">
+            <summary class="btn-small">リアクションキャラ設定</summary>
+            <div class="reaction-char-list" id="reactionCharList"></div>
+        </details>
 
         <!-- 噴出パーティクル用Canvas（カード・タイトルをまたいで最前面に表示） -->
         <canvas id="burstCanvas"></canvas>

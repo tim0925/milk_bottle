@@ -25,7 +25,7 @@ const PULSE_MAX_DURATION = 2.2; // 秒（鼓動が遅い状態・スタート時
 const PULSE_MIN_DURATION = 0.4; // 秒（鼓動が速い状態）
 const PULSE_STEP = 0.03; // +1エナジーごとに鼓動が早くなる量
 const ICON_MIN_SIZE = 100; // px（スタート時のサイズ）
-const ICON_MAX_SIZE = 380; // px（最大サイズ・カードの横幅から少しはみ出るくらい大きく）
+const ICON_MAX_SIZE = 260; // px（最大サイズ。脈拍のピーク時(最大1.28倍)でも画面幅に収まるよう抑えてある）
 const ICON_SIZE_STEP = 12; // +1エナジーごとに大きくなるサイズ
 
 let level = Number(localStorage.getItem(STORAGE_KEYS.milkLevel)) || 0;
@@ -553,6 +553,7 @@ function addMilk() {
     setOverflow(level > MAX_LEVEL);
     saveLevel();
     updateDisplay();
+    updateReaction();
 }
 
 function countAchievement(milkLevel) {
@@ -594,7 +595,10 @@ function setupTabs() {
         tabEmotionBtn.classList.toggle("active", !isBottle);
         pageBottle.hidden = !isBottle;
         pageEmotion.hidden = isBottle;
-        if (isBottle) updateBurstGeometry();
+        if (isBottle) {
+            updateBurstGeometry();
+            updateReaction();
+        }
         if (!isBottle) {
             renderEnergyGraph();
             setRandomEnergyIcon();
@@ -929,6 +933,7 @@ function drinkMilk() {
         saveLevel();
         resetEnergyForDrink();
         updateAll();
+        updateReaction();
     }, 300);
 }
 
@@ -973,6 +978,307 @@ function updateRecoveryTimer() {
     timerEl.classList.add("active");
 }
 
+// ---- リアクションキャラ ----
+const REACTION_CHAR_LABELS = {
+    genki: "元気タメ口系",
+    onesan: "優しいお姉さん系",
+    cool: "クール塩対応系",
+    amae: "甘え上手なからかい系",
+    anego: "姉御肌ズバズバ系（毒舌寄り）",
+    madam: "上品な敬語マダム系",
+    kansai: "肝っ玉母さん関西弁系（語尾に♡）",
+    otouto: "無邪気な弟系",
+    chara: "チャラ可愛いからかい系",
+    mukuchi: "寡黙なクール系",
+    bunseki: "知的な分析系",
+    jounetsu: "情熱的な励まし系",
+    gal: "ギャル盛り系",
+    tennen: "おっとり天然系",
+    baby: "赤ちゃん言葉ぶりっこ系"
+};
+
+const REACTION_CHAR_IDS = Object.keys(REACTION_CHAR_LABELS);
+
+const REACTION_CHARS = {
+    genki: {
+        empty: ["からっぽだ〜！まあここからっしょ！", "なんもないけど元気だけはあるよ！", "ゼロスタート上等、いっちゃお〜！", "空っぽ？ぜんぜん気にしない気にしない！"],
+        better: ["お〜溜まってきた溜まってきた！", "いい感じじゃん、その調子その調子！", "ちょっとずつ増えてる、ナイス！", "うんうん、順調だね〜！"],
+        hot: ["うおお、めっちゃ溜まってる🔥", "あと少しじゃん！いけいけ〜！", "テンション上がってきた、最高！", "もうゴール見えてるよ、ファイト！", "この勢いやばいって、いいぞ〜！", "アツくなってきた、止まんないで！"],
+        full: ["満タンキタ〜！やったね！！", "完璧じゃん、超えらい！", "うわ満タン、テンション爆上げ！", "やりきったね、最高だよ〜！"],
+        overflow: ["うわ溢れてる！盛り上がりすぎ〜！", "あふれた！もう手に負えないって！", "やりすぎ〜！でもそういうの好き！"]
+    },
+    onesan: {
+        empty: ["まだ始まったばかりだよ、ここから溜めていこう", "今日はゆっくりでいいんだよ、焦らないで", "空っぽも悪くない、リセットだと思えばいい", "大丈夫、ここから上げていけるよ"],
+        better: ["おっ、いい感じに溜まってきたね", "うんうん、順調そのものだよ", "ちゃんと前に進んでるよ、えらい", "ここまで来たね、その調子で"],
+        hot: ["あと一息でフルだよ、いける！", "見てるこっちまでアツくなるよ", "ここまで来たらもう止まらないでしょ", "すごいすごい、あと少しで満タンだ", "きみならフルまで行けるって信じてた", "いい流れ来てる、この勢いに乗っちゃえ"],
+        full: ["満タンだ〜！よくここまで溜めたね", "完璧、もう言うことないよ", "やりきったね、本当にえらい！", "これ以上ないって、満点だよ"],
+        overflow: ["あふれてる、あふれてるって！", "すごすぎて器が追いついてないよ", "もう限界突破しちゃってるじゃん"]
+    },
+    cool: {
+        empty: ["…空だね", "補充して、話はそれから", "何も言うことがない、まだ", "ゼロ。以上"],
+        better: ["まあまあ", "悪くない、続けて", "…及第点", "半分も行ってないけどね"],
+        hot: ["……まあ、認める", "ようやく見られる量になった", "ここからが本番でしょ", "悪くないペースだ", "……ちょっとだけ見直した", "まあ、悪くはない"],
+        full: ["……完璧。文句なし", "認める。よくやった", "これ以上は望めない", "満タン。以上だ"],
+        overflow: ["……溢れてる。やりすぎ", "規格外。コメントに困る", "OVERFLOW。それ以上の言葉がない"]
+    },
+    amae: {
+        empty: ["うっわ、見事に空っぽじゃん〜", "え、こんなにスカスカでいいの？笑", "からっぽすぎてこっちが心配になるんだけど", "ねぇ、ちゃんと溜めてよ〜"],
+        better: ["お、ちょっとは様になってきたじゃん", "まだまだ序の口だけどね〜", "へぇ、やればできるんだ？笑", "このくらいで満足しないでよ？"],
+        hot: ["ふふ、いい顔になってきたじゃん", "もうこぼしそうだけど大丈夫？", "調子乗りすぎて溢れないでよ〜", "急にアツくなっちゃって、どうしたの〜", "このまま溢れさせちゃう気でしょ、欲張り", "お、火がついたね。ようやくじゃん"],
+        full: ["うっわ満タン、欲張りさんめ〜笑", "やればできるじゃん、見直したよ", "満タンにしないと気が済まないタイプ？笑", "ここまで溜めるとはね、やるねぇ"],
+        overflow: ["ちょっと、溜めすぎでしょ！？笑", "こぼれてるよ〜もったいない！", "もう手がつけられないって、きみ"]
+    },
+    anego: {
+        empty: ["空っぽ。中身ないのはきみだけにしときな", "ここまで何もないと逆に才能だよ", "見るものがなさすぎる。さっさと溜めな", "ゼロ？やる気あんの？"],
+        better: ["中途半端が一番かっこ悪いよ、知ってた？", "このへんで止めたら全部台無しだけど", "まだ半分も行ってない。気ぃ抜くな", "悪かないけど、満足すんのは早い"],
+        hot: ["ここで満足したら一生フルは見れないよ？", "中途半端にアツいの、一番じれったいんだけど", "あと少しもできないなら最初から溜めるな", "いいとこまで来たのに止まったら笑うからね", "ここからが正念場だろ、しっかりしな", "やればできるじゃん。なら最後までやんな"],
+        full: ["やればできるじゃん、なんで毎回やらないの？", "満タン。次もこれ維持できたら本物だけどね", "認めるよ。よくやった", "上出来。でも油断すんなよ"],
+        overflow: ["加減って言葉、知ってる？", "溢れさせるとか、やることが極端なんだよ", "規格外。コメントに困るわ"]
+    },
+    madam: {
+        empty: ["あら、すっかり空になってしまいましたのね", "まだ何もございませんわね、これからですわ", "ゆるりと始めればよろしいのですわ", "空も一興、焦ることはございませんわ"],
+        better: ["だいぶ形になってまいりましたわね", "なかなか良い兆しでございますこと", "順調そのもの、よろしゅうございますわ", "この調子で参りましょうね"],
+        hot: ["まあ、たっぷり溜まってきましたこと", "あらあら、ずいぶん勢いづいてまいりましたわね", "見事な伸びでございますこと", "満タンも目前、お見事ですわ", "ほほ、これは期待できますわね", "実に結構な溜まりっぷりですこと"],
+        full: ["まあ、見事な満タンでございますわ", "申し分のない仕上がりですこと", "お見事、拍手を送らせていただきますわ", "完璧でございます、素晴らしいですわ"],
+        overflow: ["まあ、あふれてしまいましたわね…", "少々溜めすぎでございましょうか、ほほ", "あらあら、こぼれてしまいましたこと"]
+    },
+    kansai: {
+        empty: ["なんもないやんか〜、はよ入れときぃ♡", "からっぽやで〜、しっかりしいや♡", "ゼロからいこか、気楽にな♡", "なんもなくても気にせんでええよ♡"],
+        better: ["ええ調子やん、その勢いやで♡", "ぼちぼち溜まってきたなぁ♡", "ええ感じや、その調子で頼むで♡", "おっ、やるやんか〜♡"],
+        hot: ["ええやんええやん、もう一息や♡", "ええ感じに来とるで、ここで気ぃ抜くなや♡", "もうちょいで満タンや、頑張りぃ♡", "ええ溜まりっぷりやなぁ、感心するわ♡", "この勢い止めたらあかんで〜♡", "あとちょっとや、ふんばりぃ♡"],
+        full: ["ようここまで溜めたなぁ、えらいえらい♡", "満タンや！よう頑張ったなぁ♡", "完璧やん、言うことないわ♡", "見事や〜、花マルあげるわ♡"],
+        overflow: ["もうこぼれとるやんか！もったいないわ〜♡", "溜めすぎや〜、ええ加減にしぃや♡", "あふれてもうたなぁ、やりすぎやで♡"]
+    },
+    otouto: {
+        empty: ["からっぽだ〜、これから溜めよ！", "なんにもないね、でも大丈夫だよ！", "ゼロからがんばろ、ぼくも応援する！", "空っぽでもへいきへいき！"],
+        better: ["お、溜まってきたね！すごいよ！", "いい感じだ、その調子だよ！", "ちょっとずつ増えてる、えらい！", "順調だね、がんばって！"],
+        hot: ["わぁ、いっぱい溜まってきた！", "あと少しだよ、がんばれがんばれ！", "すごいすごい、もうちょっとだ！", "満タンまであと一歩だよ！", "この調子、めっちゃいいよ！", "もうすぐだ、最後までいこう！"],
+        full: ["満タンだ〜！やったね、すごい！", "完璧だよ、ほんとにえらい！", "いっぱいになった、よかったね！", "やりきったね、かっこいい！"],
+        overflow: ["わ、溢れちゃった！溜めすぎだよ〜！", "こぼれてる！でもすごいや！", "いっぱいすぎ〜！びっくりだよ！"]
+    },
+    chara: {
+        empty: ["え、空っぽ？マジで何もないじゃん笑", "スカスカすぎてウケるんだけど〜", "からっぽとか、逆に潔いね？笑", "おいおい、ちゃんと溜めようよ〜"],
+        better: ["お、ちょっとはやる気出た？笑", "まあまあじゃん、悪くないね〜", "へぇ、意外とやるんだ？", "この調子で頼むよ〜、まだまだっしょ"],
+        hot: ["お、急に本気モードじゃん？笑", "いい顔してきたね〜、やるじゃん", "もうこぼしそう、大丈夫〜？笑", "さっきまでの空っぽ何だったの？笑", "見違えたよ、誰これって感じ", "このまま溢れさせちゃう気でしょ？笑"],
+        full: ["うっわ満タン、やるじゃ〜ん笑", "見直したよ、ちゃんとできるんだ？", "満タンとか欲張りさんだね〜笑", "やればできるじゃん、いいね！"],
+        overflow: ["溜めすぎでしょ笑、こぼれてるって！", "欲張りにもほどがあるって〜笑", "もう手がつけられないね、きみ笑"]
+    },
+    mukuchi: {
+        empty: ["…空", "何もない", "まだ何も言えない", "ゼロ"],
+        better: ["…少し溜まった", "まあ、いい", "悪くない", "続けて"],
+        hot: ["…いいペースだ", "ここからだな", "まあ、認める", "もう少し", "悪くない量だ", "…見られるようになってきた"],
+        full: ["…満タン。いい", "文句ない", "よくやった", "完璧だ"],
+        overflow: ["…溢れてる", "やりすぎだ", "規格外"]
+    },
+    bunseki: {
+        empty: ["現在値ゼロ。回復を待つフェーズだ", "残量なし。ここが起点になる", "数値はゼロ。伸びしろは最大とも言える", "計測不能なほどの空。補充を推奨する"],
+        better: ["順調に増加中。このペースを維持", "右肩上がりのトレンドだ", "数値は安定して上昇している", "悪くない進捗。継続を推奨する"],
+        hot: ["上昇トレンド継続。フル到達は目前", "データ上は理想的な伸びだ", "このペースなら満タンは時間の問題", "効率的な蓄積。申し分ない", "数値は加速傾向。期待値が高い", "ピークが近い。維持を推奨する"],
+        full: ["最大値到達。申し分のない結果だ", "目標達成。完璧な数値だ", "理想的な着地。文句のつけようがない", "満タン確認。最適解と言える"],
+        overflow: ["上限超過。完全にキャパオーバーだ", "許容量を逸脱している。記録的だ", "規格外の数値。計測の意味を超えた"]
+    },
+    jounetsu: {
+        empty: ["ゼロからのスタート、燃えるじゃないか！", "何もないって最高だ、ここから創り上げよう！", "空っぽ上等！ここからが本番だぞ！", "さあ行こう、きみならやれる！"],
+        better: ["いいぞ、勢いが出てきた！その調子だ！", "前進してる、最高だ、止まるな！", "きみは確実に伸びてる、信じてるぞ！", "この調子だ、突き進め！"],
+        hot: ["熱い、熱いぞ！この勢いを止めるな！", "あと一歩だ、ここで全力を出せ！", "燃えてきた、きみは最高だ！", "ゴールは目の前、振り絞れ！", "すごい熱量だ、このまま駆け抜けろ！", "きみならフルまで行ける、信じてる！"],
+        full: ["やりきった！心から誇っていいぞ！", "満タンだ、最高の結果だ、感動した！", "完璧だ！きみの頑張りの証だ！", "見事だ、本当によくやった！"],
+        overflow: ["溢れるほどの情熱、規格外だ！", "限界を超えた、まさにレジェンドだ！", "ここまで来るとは、もはや圧巻だ！"]
+    },
+    gal: {
+        empty: ["まじ空っぽなんだけど、やばたにえん", "え、なんもなさすぎてウケるんだけど", "ゼロとかえぐい、盛り直そ？", "からっぽまじ卍、はよ溜めよ？"],
+        better: ["お、ちょい盛れてきたじゃん？", "まあまあって感じ〜、まだいけるっしょ", "ぼちぼち上がってきてて草", "悪くないじゃん、その調子〜"],
+        hot: ["うわ、まじ盛れてる！えぐくない？", "テンション爆上がりなんだけど〜🔥", "もうほぼ満タンじゃん、神では？", "このまま盛り散らかしていこ！", "急にギア入ったね、まじ卍", "えぐい勢い、優勝目前じゃん！"],
+        full: ["満タン優勝、まじ盛れすぎ✨", "えぐっ、完璧すぎて語彙力消えた", "これは表彰モノでしょ、おめでと〜", "満タンとか神すぎ、まじリスペクト"],
+        overflow: ["溢れてるって！盛りすぎ案件〜", "やりすぎてもはや事故、ウケる", "えぐすぎ、もう手に負えないって笑"]
+    },
+    tennen: {
+        empty: ["ふぁ〜…空っぽだぁ…のんびりいこ", "あれぇ、なんにもないねぇ…ふしぎ", "からっぽも、なんだか可愛いねぇ", "まあ、そのうち溜まるよねぇ…たぶん"],
+        better: ["ちょっと、たまってきたかなぁ？", "ふんわり増えてる気がするよ〜", "うんうん、いい感じ…だと思う、たぶん", "のんびり溜まってるねぇ…いいねぇ"],
+        hot: ["わぁ…けっこう、たまってきたねぇ", "ぽかぽかしてきた感じ、いいねぇ〜", "もうちょっとで満タン…かなぁ？", "なんだか幸せな眺めだねぇ…", "すごいねぇ、いつのまにこんなに", "ほわほわするねぇ、あと少し〜"],
+        full: ["わぁ…満タンだぁ…きれいだねぇ", "たっぷりで、なんだか安心するねぇ", "よかったねぇ、いっぱいになって", "ふぁ〜…満タン、しあわせだねぇ"],
+        overflow: ["あらら…こぼれちゃってるねぇ…", "ふぁ…溢れてる…まあ、いっか", "いっぱいすぎちゃったねぇ…ふしぎ"]
+    },
+    baby: {
+        empty: ["からっぽでしゅ〜、さみしいよぉ", "なんにもないねぇ、いっしょに溜めよ？", "ぴえん、ゼロからがんばろ？", "からっぽぴえん…がんばるぞぉ"],
+        better: ["たまってきたねぇ〜、えらいえらい", "ちょっとずつだねぇ、いいこいいこ", "もうちょっとだよぉ、ふぁいと〜", "じょうずじょうず〜、その調子だよぉ"],
+        hot: ["わぁ、いっぱいになってきたねぇ💕", "すごいすごい〜、もうちょいだよぉ", "あつあつだねぇ、がんばってえらい！", "このまま満タンめざそ？ねっ？", "きゅんとしちゃうくらいいい感じ〜", "もうちょいで満タンだよぉ、わくわく〜"],
+        full: ["まんたんだぁ〜！すっごいねぇ💕", "いっぱいいっぱい、はなまるあげる〜", "よくがんばったねぇ、なでなで〜", "かんぺきだよぉ、だいすき〜💕"],
+        overflow: ["あぁん、こぼれちゃったぁ", "ためすぎだよぉ、よくばりさん〜", "あふれちゃったねぇ、びっくり〜"]
+    }
+};
+
+// ---- リアクションキャラ画像（IndexedDB、EMOTION用画像とは別ストア） ----
+const REACTION_IMAGE_DB_NAME = "milkBottleReactionImages";
+const REACTION_IMAGE_DB_STORE = "images";
+
+function openReactionImageDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(REACTION_IMAGE_DB_NAME, 1);
+        req.onupgradeneeded = () => {
+            req.result.createObjectStore(REACTION_IMAGE_DB_STORE);
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function saveReactionImage(charId, blob) {
+    const db = await openReactionImageDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(REACTION_IMAGE_DB_STORE, "readwrite");
+        tx.objectStore(REACTION_IMAGE_DB_STORE).put(blob, charId);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function getReactionImage(charId) {
+    const db = await openReactionImageDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(REACTION_IMAGE_DB_STORE, "readonly");
+        const req = tx.objectStore(REACTION_IMAGE_DB_STORE).get(charId);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function deleteReactionImage(charId) {
+    const db = await openReactionImageDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(REACTION_IMAGE_DB_STORE, "readwrite");
+        tx.objectStore(REACTION_IMAGE_DB_STORE).delete(charId);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+// 中央を正方形にクロップしてリサイズ→blob化
+function cropSquareToBlob(file, size = 200) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                const side = Math.min(img.width, img.height);
+                const sx = (img.width - side) / 2;
+                const sy = (img.height - side) / 2;
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                canvas.getContext("2d").drawImage(img, sx, sy, side, side, 0, 0, size, size);
+                canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("toBlob failed")), "image/jpeg", 0.85);
+            };
+            img.onerror = reject;
+            img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// ---- リアクション表示 ----
+let lastReactionLine = "";
+let reactionFaceObjectUrl = null;
+
+function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function getCurrentBand() {
+    if (isOverflow) return "overflow";
+    return getLevelState(level).key;
+}
+
+async function updateReaction() {
+    const textEl = document.getElementById("reactionText");
+    const faceWrap = document.getElementById("reactionFaceWrap");
+    const faceImg = document.getElementById("reactionFaceImg");
+    if (!textEl || !faceWrap || !faceImg) return;
+
+    const band = getCurrentBand();
+    const charId = pickRandom(REACTION_CHAR_IDS);
+    const lines = (REACTION_CHARS[charId] && REACTION_CHARS[charId][band]) || [];
+    let line = pickRandom(lines);
+    if (lines.length > 1 && line === lastReactionLine) {
+        line = pickRandom(lines);
+    }
+    lastReactionLine = line;
+    textEl.textContent = line || "";
+
+    const blob = await getReactionImage(charId);
+    if (blob) {
+        if (reactionFaceObjectUrl) URL.revokeObjectURL(reactionFaceObjectUrl);
+        reactionFaceObjectUrl = URL.createObjectURL(blob);
+        faceImg.src = reactionFaceObjectUrl;
+        faceWrap.classList.remove("no-face");
+    } else {
+        faceImg.src = "";
+        faceWrap.classList.add("no-face");
+    }
+}
+
+// ---- リアクションキャラ設定UI ----
+function renderReactionCharList() {
+    const list = document.getElementById("reactionCharList");
+    if (!list) return;
+    list.innerHTML = REACTION_CHAR_IDS.map(id => `
+        <div class="reaction-char-row" data-char-id="${id}">
+            <span class="reaction-char-label">${REACTION_CHAR_LABELS[id]}</span>
+            <div class="reaction-char-preview-wrap">
+                <img class="reaction-char-preview" id="reactionPreview-${id}" alt="" />
+            </div>
+            <label class="btn-small file-label" for="reactionFile-${id}">画像を選ぶ</label>
+            <input type="file" id="reactionFile-${id}" class="reaction-char-file-input" data-char-id="${id}" accept="image/*" hidden />
+            <button type="button" class="btn-small reaction-char-delete" data-char-id="${id}">削除</button>
+        </div>
+    `).join("");
+}
+
+async function refreshReactionCharPreview(charId) {
+    const img = document.getElementById(`reactionPreview-${charId}`);
+    if (!img) return;
+    const blob = await getReactionImage(charId);
+    if (blob) {
+        img.src = URL.createObjectURL(blob);
+        img.classList.add("has-image");
+    } else {
+        img.src = "";
+        img.classList.remove("has-image");
+    }
+}
+
+async function refreshAllReactionCharPreviews() {
+    for (const id of REACTION_CHAR_IDS) {
+        await refreshReactionCharPreview(id);
+    }
+}
+
+function setupReactionCharUI() {
+    const list = document.getElementById("reactionCharList");
+    if (!list) return;
+
+    renderReactionCharList();
+    refreshAllReactionCharPreviews();
+
+    list.addEventListener("change", async (e) => {
+        const input = e.target.closest(".reaction-char-file-input");
+        if (!input || !input.files || !input.files[0]) return;
+        const charId = input.dataset.charId;
+        const blob = await cropSquareToBlob(input.files[0]);
+        await saveReactionImage(charId, blob);
+        input.value = "";
+        await refreshReactionCharPreview(charId);
+    });
+
+    list.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".reaction-char-delete");
+        if (!btn) return;
+        const charId = btn.dataset.charId;
+        await deleteReactionImage(charId);
+        await refreshReactionCharPreview(charId);
+    });
+}
+
 document.getElementById("addBtn").addEventListener("click", addMilk);
 document.getElementById("drinkBtn").addEventListener("click", drinkMilk);
 document.getElementById("clearBtn").addEventListener("click", clearLogs);
@@ -1008,6 +1314,7 @@ document.getElementById("energySyncNowBtn").addEventListener("click", () => {
 });
 setupTabs();
 setupEnergyLightbox();
+setupReactionCharUI();
 renderDateHeader();
 
 applyMilkRecovery();
@@ -1021,6 +1328,7 @@ setRandomEnergyIcon();
 updateEnergyImageCount();
 applyPulseSpeed();
 animateWave();
+updateReaction();
 
 setInterval(() => {
     applyMilkRecovery();
