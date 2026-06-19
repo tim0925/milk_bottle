@@ -36,10 +36,10 @@ const BOTTLE_TOP_Y = 8;
 const BOTTLE_BOT_Y = 272;
 
 function getLevelState(value) {
-    if (value >= 3)   return { key: "full",   label: "🍼FULL❤️", text: "🍼FULL❤️", className: "full",   effect: "pulse"  };
-    if (value >= 1.5) return { key: "hot",    label: "HOT🔥",    text: "HOT🔥",    className: "hot",    effect: "floaty" };
-    if (value >= 0.6) return { key: "better", label: "BETTER",   text: "Better",   className: "better", effect: "floaty" };
-    return                   { key: "empty",  label: "EMPTY",    text: "Empty...", className: "empty",  effect: ""       };
+    if (value >= 3) return { key: "full", label: "🍼FULL❤️", text: "🍼FULL❤️", className: "full", effect: "pulse" };
+    if (value >= 1.5) return { key: "hot", label: "HOT🔥", text: "HOT🔥", className: "hot", effect: "floaty" };
+    if (value >= 0.6) return { key: "better", label: "BETTER", text: "Better", className: "better", effect: "floaty" };
+    return { key: "empty", label: "EMPTY", text: "Empty...", className: "empty", effect: "" };
 }
 
 // 0.1刻みの計算で生じる浮動小数点誤差(0.30000000000000004など)を補正
@@ -109,15 +109,15 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 
 // ベースとなる出現位置と出現レベル。実際の見た目はbuildDrip()でランダムに生成する。
 const DRIP_BASE = [
-    { x: 22,  y: 230, minLevel: 0.4 },
-    { x: 50,  y: 95,  minLevel: 0.7 },
-    { x: 86,  y: 55,  minLevel: 1.0 },
+    { x: 22, y: 230, minLevel: 0.4 },
+    { x: 50, y: 95, minLevel: 0.7 },
+    { x: 86, y: 55, minLevel: 1.0 },
     { x: 112, y: 145, minLevel: 1.3 },
-    { x: 36,  y: 130, minLevel: 1.6 },
-    { x: 68,  y: 185, minLevel: 1.9 },
-    { x: 96,  y: 205, minLevel: 2.2 },
-    { x: 58,  y: 60,  minLevel: 2.6 },
-    { x: 116, y: 95,  minLevel: 3.0 },
+    { x: 36, y: 130, minLevel: 1.6 },
+    { x: 68, y: 185, minLevel: 1.9 },
+    { x: 96, y: 205, minLevel: 2.2 },
+    { x: 58, y: 60, minLevel: 2.6 },
+    { x: 116, y: 95, minLevel: 3.0 },
 ];
 
 // 毎回ランダムに形・揺れ・しずくの付き方を生成し、粘性のある液だれっぽい表現にする
@@ -489,9 +489,9 @@ function formatLevelText(value) {
 
 // ---- 表示更新 ----
 function updateDisplay() {
-    const status  = document.getElementById("status");
+    const status = document.getElementById("status");
     const message = document.getElementById("message");
-    const state   = getLevelState(level);
+    const state = getLevelState(level);
 
     targetDisplayLevel = level;
     updateDrips(level);
@@ -509,10 +509,10 @@ function updateDisplay() {
 function renderStats() {
     const stats = document.getElementById("stats");
     const items = [
-        { label: "FULL❤️", value: getCount(STORAGE_KEYS.countFull),   className: "full"   },
-        { label: "HOT🔥",  value: getCount(STORAGE_KEYS.countHot),    className: "hot"    },
+        { label: "FULL❤️", value: getCount(STORAGE_KEYS.countFull), className: "full" },
+        { label: "HOT🔥", value: getCount(STORAGE_KEYS.countHot), className: "hot" },
         { label: "BETTER", value: getCount(STORAGE_KEYS.countBetter), className: "better" },
-        { label: "EMPTY",  value: getCount(STORAGE_KEYS.countEmpty),  className: "empty"  }
+        { label: "EMPTY", value: getCount(STORAGE_KEYS.countEmpty), className: "empty" }
     ];
     stats.innerHTML = items.map(item => `
         <div class="stat-row ${item.className}">
@@ -1003,21 +1003,21 @@ const REACTION_CHARS = {
     genki: {
         empty: ["からっぽだ〜！まあここからっしょ！", "なんもないけど元気だけはあるよ！", "ゼロスタート上等、いっちゃお〜！", "空っぽ？ぜんぜん気にしない気にしない！"],
         better: ["お〜溜まってきた溜まってきた！", "いい感じじゃん、その調子その調子！", "ちょっとずつ増えてる、ナイス！", "うんうん、順調だね〜！"],
-        hot: ["うおお、めっちゃ溜まってる🔥", "あと少しじゃん！いけいけ〜！", "テンション上がってきた、最高！", "もうゴール見えてるよ、ファイト！", "この勢いやばいって、いいぞ〜！", "アツくなってきた、止まんないで！"],
+        hot: ["うおお、めっちゃ溜まってる🔥", "あと少しじゃん！いけいけ〜！", "テンション上がってきた、最高！", "もうマックスが近いよ、ファイト！", "この勢いやばいって、いいぞ〜！", "アツくなってきた、止まんないで！"],
         full: ["満タンキタ〜！やったね！！", "完璧じゃん、超えらい！", "うわ満タン、テンション爆上げ！", "やりきったね、最高だよ〜！"],
         overflow: ["うわ溢れてる！盛り上がりすぎ〜！", "あふれた！もう手に負えないって！", "やりすぎ〜！でもそういうの好き！"]
     },
     onesan: {
-        empty: ["まだ始まったばかりだよ、ここから溜めていこう", "今日はゆっくりでいいんだよ、焦らないで", "空っぽも悪くない、リセットだと思えばいい", "大丈夫、ここから上げていけるよ"],
+        empty: ["まだ始まったばかりだよ、ここから溜めていこう", "今日はゆっくりでいいんだよ、焦らないで", "空っぽも悪くない、いったんリセットだね", "大丈夫、ここから上がっていくよ"],
         better: ["おっ、いい感じに溜まってきたね", "うんうん、順調そのものだよ", "ちゃんと前に進んでるよ、えらい", "ここまで来たね、その調子で"],
-        hot: ["あと一息でフルだよ、いける！", "見てるこっちまでアツくなるよ", "ここまで来たらもう止まらないでしょ", "すごいすごい、あと少しで満タンだ", "きみならフルまで行けるって信じてた", "いい流れ来てる、この勢いに乗っちゃえ"],
+        hot: ["もうすぐフルだよ、いける！", "見てるこっちまでアツくなるよ", "ここまで来たらもう止まらないでしょ", "すごいすごい、あと少しで満タンだ", "きみならフルまで行けるって信じてた", "いい流れ来てる、この勢いに乗っちゃえ"],
         full: ["満タンだ〜！よくここまで溜めたね", "完璧、もう言うことないよ", "やりきったね、本当にえらい！", "これ以上ないって、満点だよ"],
         overflow: ["あふれてる、あふれてるって！", "すごすぎて器が追いついてないよ", "もう限界突破しちゃってるじゃん"]
     },
     cool: {
-        empty: ["…空だね", "補充して、話はそれから", "何も言うことがない、まだ", "ゼロ。以上"],
+        empty: ["…空っぽだね", "補充して、話はそれから", "何も言うことがない、まだ", "ゼロ。以上"],
         better: ["まあまあ", "悪くない、続けて", "…及第点", "半分も行ってないけどね"],
-        hot: ["……まあ、認める", "ようやく見られる量になった", "ここからが本番でしょ", "悪くないペースだ", "……ちょっとだけ見直した", "まあ、悪くはない"],
+        hot: ["……まあ、認める", "ようやくまあまあな量になった", "ここからが本番でしょ", "悪くないペースだ", "……ちょっとだけ見直した", "まあ、悪くはない"],
         full: ["……完璧。文句なし", "認める。よくやった", "これ以上は望めない", "満タン。以上だ"],
         overflow: ["……溢れてる。やりすぎ", "規格外。コメントに困る", "OVERFLOW。それ以上の言葉がない"]
     },
