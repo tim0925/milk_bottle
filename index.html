@@ -29,7 +29,7 @@
 
         <div class="bottle-card">
 
-            <div class="reaction-row" id="reactionRow">
+            <div class="reaction-row" id="reactionRow" role="button" tabindex="0" aria-label="表示するキャラを選ぶ">
                 <div class="reaction-face-wrap" id="reactionFaceWrap">
                     <img id="reactionFaceImg" class="reaction-face-img" alt="" />
                 </div>
@@ -119,6 +119,15 @@
                 </div>
             </details>
         </details>
+
+        <!-- リアクションキャラ（顔写真／コメント欄タップ）で表示キャラを選ぶピッカー -->
+        <div id="reactionCharPicker" class="reaction-char-picker">
+            <div class="reaction-char-picker-inner">
+                <div class="reaction-char-picker-title">表示するキャラを選ぶ</div>
+                <div class="reaction-char-picker-list" id="reactionCharPickerList"></div>
+                <button id="reactionCharPickerClose" class="energy-lightbox-close" type="button" aria-label="閉じる">×</button>
+            </div>
+        </div>
 
         <!-- 噴出パーティクル用Canvas（カード・タイトルをまたいで最前面に表示） -->
         <canvas id="burstCanvas"></canvas>

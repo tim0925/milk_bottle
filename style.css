@@ -625,6 +625,102 @@ button:active { background: #e8e8e8; }
     z-index: 1000;
 }
 
+.reaction-row {
+    cursor: pointer;
+}
+
+/* ---- リアクションキャラ選択ピッカー ---- */
+.reaction-char-picker {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(20, 10, 16, 0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+}
+
+.reaction-char-picker.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.reaction-char-picker-inner {
+    position: relative;
+    width: 86vw;
+    max-width: 360px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: #fff8fa;
+    border-radius: 16px;
+    padding: 18px 16px;
+    transform: scale(0.9);
+    transition: transform 0.24s cubic-bezier(.2, .8, .3, 1.2);
+}
+
+.reaction-char-picker.open .reaction-char-picker-inner {
+    transform: scale(1);
+}
+
+.reaction-char-picker-title {
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.reaction-char-picker-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.reaction-char-picker-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #f3cdd8;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.reaction-char-picker-option.selected {
+    background: #ffe3ec;
+    border-color: #e8819f;
+    font-weight: bold;
+}
+
+.reaction-char-picker-option-preview {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid #f3cdd8;
+    background: #fff;
+}
+
+.reaction-char-picker-option-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+.reaction-char-picker-option-preview img.has-image {
+    display: block;
+}
+
 @media (max-width: 480px) {
     h1 { font-size: 24px; padding: 14px 18px; }
     .bottle-wrapper { width: 180px; height: 222px; }
