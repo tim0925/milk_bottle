@@ -1491,6 +1491,12 @@ document.getElementById("reactionLinesSyncNowBtn").addEventListener("click", () 
     }
     syncReactionLinesFromUrl(url);
 });
+document.getElementById("reactionLinesResetBtn").addEventListener("click", () => {
+    // 保存済みの同期URLはそのまま残し、取り込み済みのキャラデータだけ消して公開デフォルト（10体）に戻す
+    localStorage.removeItem(STORAGE_KEYS.reactionLinesOverride);
+    document.getElementById("reactionLinesSyncStatus").textContent = "初期値（10体）に戻しました";
+    loadReactionLinesFromFile();
+});
 setupTabs();
 setupEnergyLightbox();
 setupReactionCharUI();
