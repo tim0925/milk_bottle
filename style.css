@@ -553,6 +553,8 @@ button:active { background: #e8e8e8; }
     font-size: 13px;
     border: 1px solid #ddd;
     border-radius: 6px;
+    resize: vertical;
+    font-family: inherit;
 }
 
 .energy-sync-actions {

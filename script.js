@@ -722,6 +722,8 @@ async function clearEnergyImages() {
 // ---- PCで用意した画像セットを秘密URL経由でこの端末に取り込む ----
 // URLは自分のブラウザ（localStorage）にのみ保存され、リポジトリには含まれないため
 // 他の利用者には公開されない。取得先には data URL の配列（JSON）を置いておくこと。
+// 1個のGistファイルにはサイズ上限があるため、複数URL（改行/カンマ区切り）を
+// 指定して画像セットを分割保存できるようにしている。
 function getEnergySyncUrl() {
     return localStorage.getItem(STORAGE_KEYS.energySyncUrl) || "";
 }
@@ -734,20 +736,38 @@ function saveEnergySyncUrl(url) {
     }
 }
 
-async function syncEnergyImagesFromUrl(url) {
+function parseEnergySyncUrls(text) {
+    return String(text || "")
+        .split(/[\n,]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
+async function syncEnergyImagesFromUrl(text) {
     const statusEl = document.getElementById("energySyncStatus");
     if (statusEl) statusEl.textContent = "同期中…";
+    const urls = parseEnergySyncUrls(text);
     try {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("fetch failed");
-        const list = await res.json();
-        if (!Array.isArray(list) || !list.length) throw new Error("empty list");
-        const blobs = await Promise.all(list.map(async (dataUrl) => (await fetch(dataUrl)).blob()));
+        if (!urls.length) throw new Error("empty url");
+        const results = await Promise.allSettled(urls.map(async (url) => {
+            const res = await fetch(url, { cache: "no-store" });
+            if (!res.ok) throw new Error("fetch failed");
+            const list = await res.json();
+            if (!Array.isArray(list) || !list.length) throw new Error("empty list");
+            return Promise.all(list.map(async (dataUrl) => (await fetch(dataUrl)).blob()));
+        }));
+        const blobs = results.filter(r => r.status === "fulfilled").flatMap(r => r.value);
+        const failedCount = results.filter(r => r.status === "rejected").length;
+        if (!blobs.length) throw new Error("all urls failed");
         await clearEnergyImages();
         await addEnergyImages(blobs);
         await updateEnergyImageCount();
         setRandomEnergyIcon();
-        if (statusEl) statusEl.textContent = `同期完了（${blobs.length}枚）`;
+        if (statusEl) {
+            statusEl.textContent = failedCount
+                ? `同期完了（${blobs.length}枚、${failedCount}件のURLは失敗）`
+                : `同期完了（${blobs.length}枚）`;
+        }
     } catch (e) {
         if (statusEl) statusEl.textContent = "同期に失敗しました";
     }
