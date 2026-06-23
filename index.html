@@ -91,6 +91,21 @@
                 <button id="drinkBtn" type="button">💦</button>
                 <button id="clearBtn" type="button">reset data</button>
             </div>
+
+            <!-- 💦後に表示する5段階評価のポップアップ -->
+            <div id="drinkRatingModal" class="rating-modal">
+                <div class="rating-modal-inner">
+                    <div class="rating-modal-title">今回の評価は？</div>
+                    <div class="rating-modal-buttons">
+                        <button type="button" class="rating-btn" data-rating="1">1</button>
+                        <button type="button" class="rating-btn" data-rating="2">2</button>
+                        <button type="button" class="rating-btn" data-rating="3">3</button>
+                        <button type="button" class="rating-btn" data-rating="4">4</button>
+                        <button type="button" class="rating-btn" data-rating="5">5</button>
+                    </div>
+                    <button id="ratingSkipBtn" class="rating-skip" type="button">記録しない</button>
+                </div>
+            </div>
         </div>
 
         <section class="panel">

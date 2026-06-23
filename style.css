@@ -606,6 +606,82 @@ button:active { background: #e8e8e8; }
     background: #fff;
 }
 
+/* ---- 💦後の5段階評価ポップアップ ---- */
+.rating-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(20, 10, 16, 0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+}
+
+.rating-modal.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.rating-modal-inner {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px 20px;
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.24s cubic-bezier(.2, .8, .3, 1.2);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.rating-modal.open .rating-modal-inner {
+    transform: scale(1);
+}
+
+.rating-modal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 14px;
+}
+
+.rating-modal-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.rating-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid #f0a8c0;
+    background: #fff;
+    color: #c25b80;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.rating-btn:active {
+    background: #f0a8c0;
+    color: #fff;
+}
+
+.rating-skip {
+    display: block;
+    margin: 14px auto 0;
+    border: none;
+    background: none;
+    color: #999;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .energy-lightbox-close {
     position: fixed;
     top: max(10px, env(safe-area-inset-top));

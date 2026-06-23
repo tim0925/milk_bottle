@@ -40,8 +40,8 @@ const BOTTLE_TOP_Y = 8;
 const BOTTLE_BOT_Y = 272;
 
 function getLevelState(value) {
-    if (value >= 3) return { key: "full", label: "🍼FULL❤️", text: "🍼FULL❤️", className: "full", effect: "pulse" };
-    if (value >= 1.5) return { key: "hot", label: "HOT🔥", text: "HOT🔥", className: "hot", effect: "floaty" };
+    if (value >= 3) return { key: "full", label: "FULL", text: "🍼FULL❤️", className: "full", effect: "pulse" };
+    if (value >= 1.5) return { key: "hot", label: "HOT", text: "HOT🔥", className: "hot", effect: "floaty" };
     if (value >= 0.6) return { key: "better", label: "BETTER", text: "Better", className: "better", effect: "floaty" };
     return { key: "empty", label: "EMPTY", text: "Empty...", className: "empty", effect: "" };
 }
@@ -536,7 +536,7 @@ function renderLogs() {
     logList.innerHTML = logs.map(log => `
         <div class="log-row ${log.className}">
             <span class="log-date">${log.date}</span>
-            <span class="log-main">${log.label} (${formatLevelText(log.milk)}/${MAX_LEVEL})</span>
+            <span class="log-main">${log.label} (${formatLevelText(log.milk)}/${MAX_LEVEL})${log.energy != null ? ` ⚡Lv${log.energy}` : ""}${log.rating != null ? ` 📝${log.rating}/5` : ""}</span>
         </div>
     `).join("");
 }
@@ -567,10 +567,10 @@ function countAchievement(milkLevel) {
     setCount(k, getCount(k) + 1);
 }
 
-function addLog(milkLevel) {
+function addLog(milkLevel, energyLevel) {
     const logs = getLogs();
     const state = getLevelState(milkLevel);
-    logs.unshift({ date: new Date().toLocaleString("ja-JP"), milk: milkLevel, label: state.label, className: state.className });
+    logs.unshift({ date: new Date().toLocaleString("ja-JP"), milk: milkLevel, label: state.label, className: state.className, energy: energyLevel });
     saveLogs(logs.slice(0, LOG_LIMIT));
 }
 
@@ -949,7 +949,7 @@ function drinkMilk() {
     // 少し遅らせてからリセット（アニメを見せるため）
     setTimeout(() => {
         countAchievement(level);
-        addLog(level);
+        addLog(level, getPulseCount());
         localStorage.setItem(STORAGE_KEYS.lastGameTime, String(Date.now()));
         setCount(STORAGE_KEYS.totalDrinks, getCount(STORAGE_KEYS.totalDrinks) + 1);
         level = 0;
@@ -958,7 +958,41 @@ function drinkMilk() {
         resetEnergyForDrink();
         updateAll();
         updateReaction();
+        showDrinkRatingModal();
     }, 300);
+}
+
+// ---- 💦後の5段階評価ポップアップ ----
+function setLatestLogRating(rating) {
+    const logs = getLogs();
+    if (!logs.length) return;
+    logs[0].rating = rating;
+    saveLogs(logs);
+    renderLogs();
+}
+
+function showDrinkRatingModal() {
+    const modal = document.getElementById("drinkRatingModal");
+    if (modal) modal.classList.add("open");
+}
+
+function hideDrinkRatingModal() {
+    const modal = document.getElementById("drinkRatingModal");
+    if (modal) modal.classList.remove("open");
+}
+
+function setupDrinkRatingModal() {
+    const modal = document.getElementById("drinkRatingModal");
+    const skipBtn = document.getElementById("ratingSkipBtn");
+    if (!modal) return;
+    modal.querySelectorAll(".rating-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            setLatestLogRating(Number(btn.dataset.rating));
+            hideDrinkRatingModal();
+        });
+    });
+    if (skipBtn) skipBtn.addEventListener("click", hideDrinkRatingModal);
+    modal.addEventListener("click", (e) => { if (e.target === modal) hideDrinkRatingModal(); });
 }
 
 function clearLogs() {
@@ -1519,6 +1553,7 @@ document.getElementById("reactionLinesResetBtn").addEventListener("click", () =>
 });
 setupTabs();
 setupEnergyLightbox();
+setupDrinkRatingModal();
 setupReactionCharUI();
 setupReactionCharPicker();
 if (!loadReactionLinesOverrideFromStorage()) {
