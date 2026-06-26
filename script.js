@@ -21,7 +21,9 @@ const STORAGE_KEYS = {
     energySyncUrl: "energySyncUrl",
     reactionLinesSyncUrl: "reactionLinesSyncUrl",
     reactionLinesOverride: "reactionLinesOverride",
-    pinnedReactionChar: "pinnedReactionChar"
+    pinnedReactionChar: "pinnedReactionChar",
+    reactionHidden: "reactionHidden",
+    energyIconHidden: "energyIconHidden"
 };
 
 const ENERGY_HISTORY_LIMIT = 14;
@@ -567,10 +569,36 @@ function countAchievement(milkLevel) {
     setCount(k, getCount(k) + 1);
 }
 
+function formatLogDate(d) {
+    const yy = String(d.getFullYear()).slice(-2);
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${yy}/${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${mm}`;
+}
+
+// 旧形式「YYYY/M/D H:MM:SS」を新形式「YY/M/D H:MM」に短縮する（既存ログの一度限りの移行用）
+function shortenOldLogDate(dateStr) {
+    const m = /^(\d{4})\/(\d{1,2})\/(\d{1,2}) (\d{1,2}):(\d{2}):\d{2}$/.exec(dateStr);
+    if (!m) return dateStr;
+    return `${m[1].slice(-2)}/${m[2]}/${m[3]} ${m[4]}:${m[5]}`;
+}
+
+function migrateLogDates() {
+    const logs = getLogs();
+    let changed = false;
+    logs.forEach(log => {
+        const shortened = shortenOldLogDate(log.date);
+        if (shortened !== log.date) {
+            log.date = shortened;
+            changed = true;
+        }
+    });
+    if (changed) saveLogs(logs);
+}
+
 function addLog(milkLevel, energyLevel) {
     const logs = getLogs();
     const state = getLevelState(milkLevel);
-    logs.unshift({ date: new Date().toLocaleString("ja-JP"), milk: milkLevel, label: state.label, className: state.className, energy: energyLevel });
+    logs.unshift({ date: formatLogDate(new Date()), milk: milkLevel, label: state.label, className: state.className, energy: energyLevel });
     saveLogs(logs.slice(0, LOG_LIMIT));
 }
 
@@ -804,6 +832,32 @@ async function setRandomEnergyIcon() {
         energyIconObjectUrl = null;
     }
     img.src = icons[Math.floor(Math.random() * icons.length)];
+}
+
+// ---- エナジー画面中央のアイコンの表示/非表示 ----
+function getEnergyIconHidden() {
+    return localStorage.getItem(STORAGE_KEYS.energyIconHidden) === "true";
+}
+
+function saveEnergyIconHidden(hidden) {
+    localStorage.setItem(STORAGE_KEYS.energyIconHidden, String(hidden));
+}
+
+function applyEnergyIconVisibility() {
+    const icon = document.getElementById("energyIcon");
+    const toggleBtn = document.getElementById("energyIconHideToggleBtn");
+    const hidden = getEnergyIconHidden();
+    if (icon) icon.hidden = hidden;
+    if (toggleBtn) toggleBtn.textContent = hidden ? "アイコンを表示する" : "アイコンを非表示にする";
+}
+
+function setupEnergyIconHideToggle() {
+    const toggleBtn = document.getElementById("energyIconHideToggleBtn");
+    if (!toggleBtn) return;
+    toggleBtn.addEventListener("click", () => {
+        saveEnergyIconHidden(!getEnergyIconHidden());
+        applyEnergyIconVisibility();
+    });
 }
 
 function getPulseCount() {
@@ -1337,6 +1391,32 @@ function savePinnedReactionChar(id) {
     }
 }
 
+// ---- コメント機能（顔写真＋セリフの吹き出し）の表示/非表示 ----
+function getReactionHidden() {
+    return localStorage.getItem(STORAGE_KEYS.reactionHidden) === "true";
+}
+
+function saveReactionHidden(hidden) {
+    localStorage.setItem(STORAGE_KEYS.reactionHidden, String(hidden));
+}
+
+function applyReactionVisibility() {
+    const row = document.getElementById("reactionRow");
+    const toggleBtn = document.getElementById("reactionHideToggleBtn");
+    const hidden = getReactionHidden();
+    if (row) row.hidden = hidden;
+    if (toggleBtn) toggleBtn.textContent = hidden ? "コメント機能を表示する" : "コメント機能を非表示にする";
+}
+
+function setupReactionHideToggle() {
+    const toggleBtn = document.getElementById("reactionHideToggleBtn");
+    if (!toggleBtn) return;
+    toggleBtn.addEventListener("click", () => {
+        saveReactionHidden(!getReactionHidden());
+        applyReactionVisibility();
+    });
+}
+
 async function updateReaction() {
     const textEl = document.getElementById("reactionText");
     const faceWrap = document.getElementById("reactionFaceWrap");
@@ -1556,11 +1636,16 @@ setupEnergyLightbox();
 setupDrinkRatingModal();
 setupReactionCharUI();
 setupReactionCharPicker();
+setupReactionHideToggle();
+applyReactionVisibility();
+setupEnergyIconHideToggle();
+applyEnergyIconVisibility();
 if (!loadReactionLinesOverrideFromStorage()) {
     loadReactionLinesFromFile();
 }
 renderDateHeader();
 
+migrateLogDates();
 applyMilkRecovery();
 currentDisplayLevel = level;
 targetDisplayLevel = level;

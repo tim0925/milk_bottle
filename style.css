@@ -215,6 +215,10 @@ h2 {
     margin: 0 0 14px;
 }
 
+.reaction-row[hidden] {
+    display: none;
+}
+
 .reaction-face-wrap {
     flex: 0 0 auto;
     width: 56px;
@@ -465,6 +469,10 @@ button:active { background: #e8e8e8; }
 
 .energy-icon.pulsing {
     animation: heartbeat var(--pulse-duration, 2s) ease-in-out infinite;
+}
+
+.energy-icon[hidden] {
+    display: none;
 }
 
 .energy-icon-img {
